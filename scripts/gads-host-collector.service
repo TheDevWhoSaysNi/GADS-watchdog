@@ -1,0 +1,16 @@
+[Unit]
+Description=GADS Watchdog host collector (ADB + USB)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/gads-watchdog
+Environment=WATCH_URL=http://127.0.0.1:43180
+Environment=COLLECTOR_TOKEN=replace-me
+Environment=INTERVAL=15
+ExecStart=/opt/gads-watchdog/scripts/host-collector.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

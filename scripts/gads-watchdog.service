@@ -1,0 +1,14 @@
+[Unit]
+Description=GADS Watchdog sidecar
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/gads-watchdog
+Environment=PORT=43180
+ExecStart=/usr/bin/npm run start -- --port 43180 --hostname 0.0.0.0
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
