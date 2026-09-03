@@ -1,4 +1,4 @@
-import { dispatchAlert } from "@/lib/alerts";
+import { configuredChannels, dispatchAlert, hasAnyAlertChannel } from "@/lib/alerts";
 import { loadSettings } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export async function POST() {
 
   return Response.json({
     sent,
-    configured: Boolean(settings.ntfyTopic || settings.discordWebhook || settings.webhookUrl),
+    configured: hasAnyAlertChannel(settings),
+    channels: configuredChannels(settings),
   });
 }

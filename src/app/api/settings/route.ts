@@ -1,23 +1,27 @@
-import { defaultSettings, loadSettings, saveSettings } from "@/lib/store";
+import { configuredChannels } from "@/lib/alerts";
+import { defaultSettings, loadSettingsMeta, saveSettings } from "@/lib/store";
 import type { PublicSettings, Settings } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function toPublic(settings: Settings): PublicSettings {
+function toPublic(settings: Settings, fromEnv: (keyof Settings)[]): PublicSettings {
   const { gadsPassword, ...rest } = settings;
   return {
     ...rest,
     hasPassword: Boolean(gadsPassword),
+    fromEnv: fromEnv as string[],
+    alertChannels: configuredChannels(settings),
   };
 }
 
 export async function GET() {
-  return Response.json(toPublic(loadSettings()));
+  const { settings, fromEnv } = loadSettingsMeta();
+  return Response.json(toPublic(settings, fromEnv));
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as Partial<Settings>;
-  const current = loadSettings();
+  const { settings: current } = loadSettingsMeta();
   const defaults = defaultSettings();
   const next: Settings = {
     ...current,
@@ -31,7 +35,8 @@ export async function POST(request: Request) {
     downGraceSeconds: clamp(body.downGraceSeconds ?? current.downGraceSeconds, 10, 600),
   };
   saveSettings(next);
-  return Response.json(toPublic(next));
+  const loaded = loadSettingsMeta();
+  return Response.json(toPublic(loaded.settings, loaded.fromEnv));
 }
 
 function clamp(value: number, min: number, max: number): number {

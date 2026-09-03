@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +29,14 @@ export function SettingsForm() {
     return <p className="text-sm text-zinc-400">Loading settings…</p>;
   }
 
+  const fromEnv = form.fromEnv ?? [];
+
   function patch<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  function locked(key: string) {
+    return fromEnv.includes(key);
   }
 
   async function save() {
@@ -53,18 +60,44 @@ export function SettingsForm() {
 
   async function testAlert() {
     const res = await fetch("/api/alerts/test", { method: "POST" });
-    const body = (await res.json()) as { sent: boolean; configured: boolean };
+    const body = (await res.json()) as { sent: boolean; configured: boolean; channels?: string[] };
     if (!body.configured) {
-      toast.error("Add an ntfy topic, Discord webhook, or generic webhook first");
+      toast.error("Fill ntfy, Telegram, Discord, or any other channel first — blank ones are skipped");
       return;
     }
     toast[body.sent ? "success" : "error"](
-      body.sent ? "Test alert sent" : "Alert endpoints rejected the test",
+      body.sent
+        ? `Test sent via ${body.channels?.join(", ") ?? "configured channels"}`
+        : "Alert endpoints rejected the test",
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/setup"
+          className="rounded-xl border border-lime-400/25 bg-lime-400/5 p-4 transition hover:bg-lime-400/10"
+        >
+          <p className="text-xs font-medium uppercase tracking-wide text-lime-300">Path 1</p>
+          <p className="mt-1 font-medium text-zinc-100">New to phone farms</p>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+            Guided ntfy setup. Install an app, generate a private topic, get a
+            test ping. No .env required.
+          </p>
+        </Link>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Path 2</p>
+          <p className="mt-1 font-medium text-zinc-100">Run as a service</p>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+            Copy <code className="text-zinc-200">.env.example</code> to{" "}
+            <code className="text-zinc-200">.env</code>, paste any webhooks you
+            want, leave the rest blank. Then install the Linux, Windows, or
+            macOS service. Env values lock the matching fields below.
+          </p>
+        </div>
+      </div>
+
       <Card className="bg-zinc-900/70">
         <CardHeader>
           <CardTitle>GADS connection</CardTitle>
@@ -78,6 +111,7 @@ export function SettingsForm() {
             <Switch
               checked={form.mode === "demo"}
               onCheckedChange={(checked) => patch("mode", checked ? "demo" : "live")}
+              disabled={locked("mode")}
             />
           </Row>
           <Field
@@ -85,11 +119,13 @@ export function SettingsForm() {
             value={form.gadsUrl}
             onChange={(value) => patch("gadsUrl", value)}
             placeholder="http://127.0.0.1:10000"
+            locked={locked("gadsUrl")}
           />
           <Row label="Hub auth enabled">
             <Switch
               checked={form.gadsAuthEnabled}
               onCheckedChange={(checked) => patch("gadsAuthEnabled", checked)}
+              disabled={locked("gadsAuthEnabled")}
             />
           </Row>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -97,12 +133,14 @@ export function SettingsForm() {
               label="Username"
               value={form.gadsUsername}
               onChange={(value) => patch("gadsUsername", value)}
+              locked={locked("gadsUsername")}
             />
             <Field
               label={form.hasPassword ? "Password (unchanged if blank)" : "Password"}
               value={form.gadsPassword}
               onChange={(value) => patch("gadsPassword", value)}
               type="password"
+              locked={locked("gadsPassword")}
             />
           </div>
           <Field
@@ -111,12 +149,14 @@ export function SettingsForm() {
             value={form.gadsOrigin}
             onChange={(value) => patch("gadsOrigin", value)}
             placeholder="http://127.0.0.1:10000"
+            locked={locked("gadsOrigin")}
           />
           <Field
             label="Workspace ID"
             hint="Blank = first/default workspace GADS returns."
             value={form.workspaceId}
             onChange={(value) => patch("workspaceId", value)}
+            locked={locked("workspaceId")}
           />
         </CardContent>
       </Card>
@@ -125,9 +165,12 @@ export function SettingsForm() {
         <CardHeader>
           <CardTitle>Alerting</CardTitle>
           <CardDescription>
-            ntfy is the fastest home-lab option: install the ntfy app, subscribe to a
-            private topic, paste it here. Alerts wait for the grace period so brief
-            USB blips stay quiet.
+            Every filled channel gets the same drop. Blank channels are skipped.
+            ntfy is the guided-phone option; the rest are paste-a-secret for
+            people who already have bots and webhooks.
+            {form.alertChannels?.length
+              ? ` Active: ${form.alertChannels.join(", ")}.`
+              : " No channels active yet."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -137,40 +180,127 @@ export function SettingsForm() {
               type="number"
               value={String(form.pollSeconds)}
               onChange={(value) => patch("pollSeconds", Number(value))}
+              locked={locked("pollSeconds")}
             />
             <Field
               label="Down grace (seconds)"
               type="number"
               value={String(form.downGraceSeconds)}
               onChange={(value) => patch("downGraceSeconds", Number(value))}
+              locked={locked("downGraceSeconds")}
             />
           </div>
           <Row label="Notify on recovery">
             <Switch
               checked={form.recoverNotify}
               onCheckedChange={(checked) => patch("recoverNotify", checked)}
+              disabled={locked("recoverNotify")}
             />
           </Row>
+
+          <p className="pt-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Phone push — ntfy
+          </p>
           <Field
             label="ntfy server"
             value={form.ntfyServer}
             onChange={(value) => patch("ntfyServer", value)}
+            locked={locked("ntfyServer")}
           />
           <Field
             label="ntfy topic"
             value={form.ntfyTopic}
             onChange={(value) => patch("ntfyTopic", value)}
             placeholder="gads-home-farm-something-secret"
+            locked={locked("ntfyTopic")}
+          />
+          <Field
+            label="ntfy token (optional)"
+            hint="Only if your ntfy server requires auth."
+            value={form.ntfyToken}
+            onChange={(value) => patch("ntfyToken", value)}
+            type="password"
+            locked={locked("ntfyToken")}
+          />
+
+          <p className="pt-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Chat and webhooks — blank means off
+          </p>
+          <Field
+            label="Telegram bot token"
+            hint="From @BotFather. Also set a chat id."
+            value={form.telegramBotToken}
+            onChange={(value) => patch("telegramBotToken", value)}
+            type="password"
+            locked={locked("telegramBotToken")}
+          />
+          <Field
+            label="Telegram chat id"
+            value={form.telegramChatId}
+            onChange={(value) => patch("telegramChatId", value)}
+            locked={locked("telegramChatId")}
           />
           <Field
             label="Discord webhook"
             value={form.discordWebhook}
             onChange={(value) => patch("discordWebhook", value)}
+            locked={locked("discordWebhook")}
           />
           <Field
+            label="Slack webhook"
+            value={form.slackWebhook}
+            onChange={(value) => patch("slackWebhook", value)}
+            locked={locked("slackWebhook")}
+          />
+          <Field
+            label="Mattermost webhook"
+            value={form.mattermostWebhook}
+            onChange={(value) => patch("mattermostWebhook", value)}
+            locked={locked("mattermostWebhook")}
+          />
+          <Field
+            label="Microsoft Teams webhook"
+            value={form.teamsWebhook}
+            onChange={(value) => patch("teamsWebhook", value)}
+            locked={locked("teamsWebhook")}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Pushover user key"
+              value={form.pushoverUserKey}
+              onChange={(value) => patch("pushoverUserKey", value)}
+              locked={locked("pushoverUserKey")}
+            />
+            <Field
+              label="Pushover API token"
+              value={form.pushoverApiToken}
+              onChange={(value) => patch("pushoverApiToken", value)}
+              type="password"
+              locked={locked("pushoverApiToken")}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Gotify URL"
+              value={form.gotifyUrl}
+              onChange={(value) => patch("gotifyUrl", value)}
+              placeholder="https://gotify.example.com"
+              locked={locked("gotifyUrl")}
+            />
+            <Field
+              label="Gotify token"
+              value={form.gotifyToken}
+              onChange={(value) => patch("gotifyToken", value)}
+              type="password"
+              locked={locked("gotifyToken")}
+            />
+          </div>
+          <Field
             label="Generic webhook URL"
+            hint="POSTs JSON { source, event }. Slack, n8n, or anything that accepts a POST."
             value={form.webhookUrl}
             onChange={(value) => patch("webhookUrl", value)}
+            locked={locked("webhookUrl")}
           />
         </CardContent>
       </Card>
@@ -189,6 +319,7 @@ export function SettingsForm() {
             label="Collector token"
             value={form.collectorToken}
             onChange={(value) => patch("collectorToken", value)}
+            locked={locked("collectorToken")}
           />
           <pre className="overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">
 {`WATCH_URL=http://127.0.0.1:43180 \\
@@ -217,6 +348,7 @@ function Field({
   onChange,
   type = "text",
   placeholder,
+  locked = false,
 }: {
   label: string;
   hint?: string;
@@ -224,17 +356,30 @@ function Field({
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  locked?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label>
+        {label}
+        {locked ? (
+          <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-200">
+            from .env
+          </span>
+        ) : null}
+      </Label>
       <Input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
+        disabled={locked}
       />
-      {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
+      {locked ? (
+        <p className="text-xs text-zinc-500">Set in .env or the service environment. Restart to change.</p>
+      ) : hint ? (
+        <p className="text-xs text-zinc-500">{hint}</p>
+      ) : null}
     </div>
   );
 }

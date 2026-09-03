@@ -29,13 +29,25 @@ export type Settings = {
   recoverNotify: boolean;
   ntfyServer: string;
   ntfyTopic: string;
+  ntfyToken: string;
   discordWebhook: string;
+  telegramBotToken: string;
+  telegramChatId: string;
+  slackWebhook: string;
+  mattermostWebhook: string;
+  teamsWebhook: string;
+  pushoverUserKey: string;
+  pushoverApiToken: string;
+  gotifyUrl: string;
+  gotifyToken: string;
   webhookUrl: string;
   collectorToken: string;
 };
 
 export type PublicSettings = Omit<Settings, "gadsPassword"> & {
   hasPassword: boolean;
+  fromEnv: string[];
+  alertChannels: string[];
 };
 
 export type AdbDevice = {
@@ -123,6 +135,7 @@ export type FarmSnapshot = {
     cableSuspects: number;
     setupStuck: number;
   };
+  alertsConfigured: boolean;
 };
 
 export type DeviceMemory = {

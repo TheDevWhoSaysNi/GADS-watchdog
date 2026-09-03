@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { applyEnv, loadDotEnv } from "./env";
 import type {
   DeviceMemory,
   FarmEvent,
@@ -48,19 +49,41 @@ export function defaultSettings(): Settings {
     recoverNotify: true,
     ntfyServer: "https://ntfy.sh",
     ntfyTopic: "",
+    ntfyToken: "",
     discordWebhook: "",
+    telegramBotToken: "",
+    telegramChatId: "",
+    slackWebhook: "",
+    mattermostWebhook: "",
+    teamsWebhook: "",
+    pushoverUserKey: "",
+    pushoverApiToken: "",
+    gotifyUrl: "",
+    gotifyToken: "",
     webhookUrl: "",
     collectorToken: randomBytes(18).toString("hex"),
   };
 }
 
-export function loadSettings(): Settings {
+export function loadStoredSettings(): Settings {
   const stored = readJson<Partial<Settings>>("settings.json", {});
   return { ...defaultSettings(), ...stored };
 }
 
+export function loadSettingsMeta(): { settings: Settings; fromEnv: (keyof Settings)[] } {
+  loadDotEnv();
+  return applyEnv(loadStoredSettings());
+}
+
+export function loadSettings(): Settings {
+  return loadSettingsMeta().settings;
+}
+
 export function saveSettings(next: Settings) {
-  writeJson("settings.json", next);
+  const stored = loadStoredSettings();
+  const { fromEnv } = applyEnv(stored);
+  const locked = Object.fromEntries(fromEnv.map((key) => [key, stored[key]]));
+  writeJson("settings.json", { ...next, ...locked });
 }
 
 export function loadEvents(): FarmEvent[] {

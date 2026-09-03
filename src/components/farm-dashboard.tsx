@@ -101,6 +101,24 @@ export function FarmDashboard() {
         </div>
       </div>
 
+      {!farm.alertsConfigured ? (
+        <Card className="border-lime-400/25 bg-lime-400/5">
+          <CardContent className="py-4 text-sm text-lime-50">
+            Nothing will page you yet. New to this? Use the{" "}
+            <Link href="/setup" className="underline underline-offset-2">
+              guided ntfy setup
+            </Link>
+            . Prefer bots and services? Paste Telegram, Discord, or any other
+            channel in{" "}
+            <Link href="/settings" className="underline underline-offset-2">
+              Settings
+            </Link>{" "}
+            or <code className="text-lime-100">.env</code> — blank variables stay
+            silent.
+          </CardContent>
+        </Card>
+      ) : null}
+
       {farm.mode === "demo" ? (
         <Card className="border-sky-400/20 bg-sky-400/5">
           <CardContent className="py-4 text-sm text-sky-50">

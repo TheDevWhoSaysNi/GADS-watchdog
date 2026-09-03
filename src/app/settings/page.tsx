@@ -9,8 +9,9 @@ export default function SettingsPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Connect your existing GADS hub, choose how you want to be paged, and
-            copy the collector command onto the USB host.
+            Guided ntfy for a first farm, or paste env-style secrets and run
+            Watchdog as a Linux, Windows, or macOS service. Blank channels are
+            skipped.
           </p>
         </div>
         <SettingsForm />

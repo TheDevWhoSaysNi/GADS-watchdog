@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { dispatchAlert } from "./alerts";
+import { dispatchAlert, hasAnyAlertChannel } from "./alerts";
 import { classifyDevice, isCableSuspect, severityForCause } from "./classify";
 import { buildDemoWorld } from "./demo";
 import { formatDuration } from "./format";
@@ -118,6 +118,7 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     devices: classified,
     events: mergedEvents.slice(0, 80),
     stats: summarize(classified),
+    alertsConfigured: hasAnyAlertChannel(settings),
   };
 
   lastPollAt = now;

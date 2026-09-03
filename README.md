@@ -32,22 +32,79 @@ The Playbook page in the app expands on that.
   - USB present but no ADB (charge-only cable or charging-only mode)
   - Provider stuck in `init`
   - Stale provider heartbeat (>3s, which GADS itself treats as unavailable)
-- Alerts after a grace period via [ntfy](https://ntfy.sh), Discord, or a generic webhook, and can notify on recovery.
+- Alerts after a grace period. Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent. Can also notify on recovery.
 - Ships a demo farm so you can see the classifications before pointing it at production.
 
-## Run locally
+There are two ways to run it.
+
+## 1. Guided setup (new to phone farms)
+
+This is the n00b path. You do not need `.env`, systemd, or a bot token.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43180](http://127.0.0.1:43180). Demo mode is on by default.
+Open [http://127.0.0.1:43180/setup](http://127.0.0.1:43180/setup). Demo mode is already on.
+
+1. Look at the demo farm if you want to see drop types first.
+2. Install the free [ntfy](https://ntfy.sh) app on your phone.
+3. Generate a long private topic in the wizard and subscribe to it.
+4. Send a test ping. You should get a push in a couple of seconds.
+5. When you are ready, paste your GADS hub URL and turn demo mode off.
+
+Drops shorter than the grace period (45s by default) stay silent so a 5-second USB hiccup does not page you.
 
 ```bash
 npm test
 npm run build && npm start
 ```
+
+## 2. Run as a service (env file)
+
+For people who already have a Telegram bot, Discord webhook, or a home-lab box that should just stay up.
+
+```bash
+cp .env.example .env
+```
+
+Paste secrets into `.env`. Leave unused variables blank — Watchdog only sends to channels that have values. Then install the service from the repo directory.
+
+**Linux (systemd)**
+
+```bash
+chmod +x scripts/*.sh
+./scripts/install-linux.sh
+```
+
+**Windows (PowerShell / Task Scheduler)**
+
+```powershell
+.\scripts\install-windows.ps1
+```
+
+**macOS (Terminal / launchd)**
+
+```bash
+chmod +x scripts/*.sh
+./scripts/install-macos.sh
+```
+
+The UI is still on [http://127.0.0.1:43180](http://127.0.0.1:43180). Values from `.env` win over Settings and show as locked in the form. Restart the service after you edit `.env`.
+
+Example notification block:
+
+```env
+NTFY_TOPIC=
+TELEGRAM_BOT_TOKEN=123456:AA...
+TELEGRAM_CHAT_ID=987654321
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+SLACK_WEBHOOK_URL=
+WEBHOOK_URL=
+```
+
+That example pages Telegram and Discord only.
 
 ## Point it at your GADS hub
 
@@ -64,13 +121,9 @@ Settings, including the hub password and collector token, live in `data/settings
 
 ## Alerts
 
-The fastest home-lab path:
+Guided path: **Start here** in the app, or `/setup`. That is ntfy-only and walks you through the phone app.
 
-1. Install the ntfy app on your phone.
-2. Subscribe to a long random topic name.
-3. Paste that topic in Settings and send a test alert.
-
-Drops shorter than the grace period (45s by default) stay silent so a 5-second USB hiccup does not page you. A generic webhook is there so other farms can plug Slack, Discord, n8n, or Telegram.
+Service path: any filled variable in `.env` or Settings is a destination. Supported today: ntfy, Telegram, Discord, Slack, Mattermost, Microsoft Teams, Pushover, Gotify, and a generic JSON webhook. Send a test from Settings after you paste something.
 
 ## Host collector
 

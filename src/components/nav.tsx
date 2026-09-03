@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Activity, BookOpen, Settings } from "lucide-react";
+import { Activity, BookOpen, HandHelping, Settings } from "lucide-react";
 
 const links = [
   { href: "/", label: "Farm", icon: Activity },
+  { href: "/setup", label: "Start here", icon: HandHelping },
   { href: "/playbook", label: "Playbook", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

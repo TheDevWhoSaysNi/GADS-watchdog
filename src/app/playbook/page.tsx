@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Nav } from "@/components/nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -64,6 +65,30 @@ export default function PlaybookPage() {
 
         <Card className="bg-zinc-900/70">
           <CardHeader>
+            <CardTitle>Two ways to get paged</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm leading-relaxed text-zinc-300">
+            <p>
+              <strong className="text-zinc-100">New to farms:</strong> open{" "}
+              <Link href="/setup" className="underline underline-offset-2">
+                Start here
+              </Link>
+              , install ntfy, generate a topic, send a test. That is the whole
+              pager setup.
+            </p>
+            <p>
+              <strong className="text-zinc-100">Already have a lab:</strong> copy{" "}
+              <code>.env.example</code> to <code>.env</code>, paste Telegram /
+              Discord / Slack / whatever you already use, leave the rest blank,
+              and run <code>scripts/install-linux.sh</code>,{" "}
+              <code>scripts/install-windows.ps1</code>, or{" "}
+              <code>scripts/install-macos.sh</code>.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900/70">
+          <CardHeader>
             <CardTitle>2. Stop the morning UI check</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-relaxed text-zinc-300">
@@ -72,7 +97,8 @@ export default function PlaybookPage() {
               a device unavailable if <code>provider_state</code> is not{" "}
               <code>live</code>, or if the provider heartbeat is older than 3
               seconds. Watchdog polls that, waits for a grace period, then pages
-              you via ntfy, Discord, or a webhook.
+              you via ntfy, Telegram, Discord, Slack, or any other filled
+              channel.
             </p>
             <p>
               That alone replaces the morning click-through. Add the host collector

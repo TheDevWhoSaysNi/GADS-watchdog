@@ -5,8 +5,9 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/gads-watchdog
+EnvironmentFile=-/opt/gads-watchdog/.env
 Environment=PORT=43180
-ExecStart=/usr/bin/npm run start -- --port 43180 --hostname 0.0.0.0
+ExecStart=/opt/gads-watchdog/scripts/run-watchdog.sh
 Restart=on-failure
 RestartSec=5
 
