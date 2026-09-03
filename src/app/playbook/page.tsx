@@ -82,7 +82,8 @@ export default function PlaybookPage() {
               Discord / Slack / whatever you already use, leave the rest blank,
               and run <code>scripts/install-linux.sh</code>,{" "}
               <code>scripts/install-windows.ps1</code>, or{" "}
-              <code>scripts/install-macos.sh</code>.
+              <code>scripts/install-macos.sh</code>. Step-by-step:
+              docs/INSTALL.md (humans) and AGENTS.md (Cursor / Claude Code).
             </p>
           </CardContent>
         </Card>

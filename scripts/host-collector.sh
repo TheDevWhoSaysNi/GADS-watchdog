@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Collect ADB, USB sysfs, optional iOS UDIDs, and recent USB kernel lines.
-# Run this on the GADS provider host — the machine the phones are plugged into.
+# Collect ADB, USB (Linux sysfs or macOS system_profiler), optional idevice_id,
+# and recent USB kernel lines. Run on the provider USB host, not as a second UI.
+# Linux: ./scripts/install-collector-linux.sh
+# macOS: ./scripts/install-collector-macos.sh
 set -euo pipefail
 
 WATCH_URL="${WATCH_URL:-http://127.0.0.1:43180}"

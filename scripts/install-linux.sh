@@ -7,10 +7,15 @@ UNIT_NAME="gads-watchdog.service"
 
 if [[ ! -f "$ROOT/.env" && -f "$ROOT/.env.example" ]]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
-  echo "Created $ROOT/.env from the example. Fill any notification variables you want, leave the rest blank."
+  echo "Created $ROOT/.env from the example. Fill GADS_URL, login, and any pager vars. Leave the rest blank."
 fi
 
-chmod +x "$ROOT/scripts/run-watchdog.sh" "$ROOT/scripts/host-collector.sh"
+if command -v systemctl >/dev/null 2>&1 && systemctl cat gads-hub.service >/dev/null 2>&1; then
+  echo "Found gads-hub.service — set GADS_URL to this --port (often 10000 or 8080):"
+  systemctl cat gads-hub.service | grep -E 'ExecStart|--port' || true
+fi
+
+chmod +x "$ROOT/scripts/"*.sh
 
 if [[ ! -d "$ROOT/node_modules" ]]; then
   (cd "$ROOT" && npm install)
@@ -59,4 +64,5 @@ fi
 
 echo
 echo "Watchdog should be on http://127.0.0.1:43180"
-echo "New to farms? Open /setup and use ntfy. Tech path: edit .env and restart the service."
+echo "Guided: open /setup    Expert: edit .env and restart"
+echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md"

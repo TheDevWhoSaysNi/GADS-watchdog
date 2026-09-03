@@ -60,4 +60,5 @@ launchctl kickstart -k "gui/$(id -u)/$LABEL"
 
 echo "Installed launchd agent $PLIST"
 echo "Watchdog should be on http://127.0.0.1:43180"
-echo "New to farms? Open /setup and use ntfy. Tech path: edit .env and run: launchctl kickstart -k gui/$(id -u)/$LABEL"
+echo "Guided: open /setup    Expert: edit .env then: launchctl kickstart -k gui/$(id -u)/$LABEL"
+echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md"

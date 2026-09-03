@@ -1,5 +1,6 @@
 # Install GADS Watchdog as a Windows Scheduled Task that starts at logon.
 # Run from PowerShell:  .\scripts\install-windows.ps1
+# If blocked:  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
@@ -49,5 +50,6 @@ Start-ScheduledTask -TaskName $TaskName
 
 Write-Host "Installed scheduled task '$TaskName'."
 Write-Host "Watchdog should be on http://127.0.0.1:43180"
-Write-Host "New to farms? Open /setup and use ntfy. Tech path: edit .env, then restart the task."
+Write-Host "Guided: open /setup    Expert: edit .env, then Restart-ScheduledTask -TaskName '$TaskName'"
+Write-Host "Full steps: docs/INSTALL.md    Agents: AGENTS.md"
 Write-Host "Uninstall: Unregister-ScheduledTask -TaskName '$TaskName' -Confirm:`$false"
