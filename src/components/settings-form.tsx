@@ -184,6 +184,7 @@ export function SettingsForm() {
             />
             <Field
               label="Down grace (seconds)"
+              hint="Minimum 15s. Set this longer than a provider restart so hourly bounces stay quiet."
               type="number"
               value={String(form.downGraceSeconds)}
               onChange={(value) => patch("downGraceSeconds", Number(value))}

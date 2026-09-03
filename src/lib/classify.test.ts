@@ -98,6 +98,18 @@ describe("classifyCause", () => {
     );
   });
 
+  it("without a collector, a non-live phone is simply down", () => {
+    assert.equal(
+      classifyCause(
+        device({ connected: false, available: false, providerState: "init" }),
+        null,
+        true,
+        now,
+      ),
+      "unknown_down",
+    );
+  });
+
   it("flags hub outage above per-device causes", () => {
     assert.equal(classifyCause(device(), host(), false, now), "hub_unreachable");
   });

@@ -127,11 +127,15 @@ export class GadsClient {
 
   async health(): Promise<boolean> {
     try {
+      await this.login();
       const res = await fetch(this.url("/health"), {
         headers: this.headers(),
         cache: "no-store",
       });
-      return res.ok;
+      if (res.ok) return true;
+      // Some hubs keep /health behind a broken anonymous check even after login.
+      // If we already have a token, the hub is reachable enough to watch devices.
+      return Boolean(this.token);
     } catch {
       return false;
     }
@@ -204,19 +208,14 @@ async function readFirstSseData(res: Response): Promise<string | null> {
 
   try {
     while (Date.now() < deadline) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split(/\n\n/);
-      buffer = blocks.pop() ?? "";
-      for (const block of blocks) {
-        const dataLines = block
-          .split("\n")
-          .filter((line) => line.startsWith("data:"))
-          .map((line) => line.slice(5).trimStart());
-        if (dataLines.length) return dataLines.join("\n");
-      }
+      const remaining = Math.max(50, deadline - Date.now());
+      const chunk = await readChunk(reader, remaining);
+      if (!chunk) break;
+      buffer += decoder.decode(chunk, { stream: true });
+      const payload = firstSsePayload(buffer);
+      if (payload) return payload;
     }
+    return firstSsePayload(buffer + decoder.decode(), true);
   } finally {
     try {
       await reader.cancel();
@@ -224,7 +223,46 @@ async function readFirstSseData(res: Response): Promise<string | null> {
       // ignore
     }
   }
-  return null;
+}
+
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs: number,
+): Promise<Uint8Array | null> {
+  try {
+    const result = await Promise.race([
+      reader.read(),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("sse-timeout")), timeoutMs);
+      }),
+    ]);
+    if (result.done) return null;
+    return result.value;
+  } catch {
+    return null;
+  }
+}
+
+function firstSsePayload(buffer: string, allowPartial = false): string | null {
+  const blocks = buffer.split(/\r?\n\r?\n/);
+  const complete = allowPartial ? blocks : blocks.slice(0, -1);
+  for (const block of complete) {
+    const dataLines = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trimStart());
+    if (dataLines.length) return dataLines.join("\n");
+  }
+
+  const trimmed = buffer.trimStart();
+  if (!trimmed.startsWith("data:")) return null;
+  const payload = trimmed.slice(5).trimStart();
+  try {
+    JSON.parse(payload);
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 function extractWorkspaces(body: unknown): Workspace[] {

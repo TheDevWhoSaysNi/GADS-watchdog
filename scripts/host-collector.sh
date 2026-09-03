@@ -22,6 +22,13 @@ def run(cmd):
         return ""
 
 
+def hex_id(value):
+    token = str(value or "").split()[0]
+    if token.lower().startswith("0x"):
+        return token[2:]
+    return token
+
+
 adb = []
 for line in run(["adb", "devices", "-l"]).splitlines():
     if not line.strip() or line.startswith("List of devices"):
@@ -69,6 +76,34 @@ if os.path.isdir(root):
             "product": read("product"),
             "serial": read("serial") or None,
         })
+elif sys.platform == "darwin":
+    try:
+        raw = run(["system_profiler", "SPUSBDataType", "-json"])
+        tree = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        tree = {}
+
+    def walk_usb(node, bus="?"):
+        if not isinstance(node, dict):
+            return
+        serial = node.get("serial_num") or node.get("serial_number")
+        vendor = str(node.get("vendor_id") or "")
+        product = str(node.get("product_id") or "")
+        if serial or (vendor and product):
+            usb.append({
+                "bus": str(node.get("location_id") or bus),
+                "sysName": str(node.get("_name") or "usb"),
+                "vendorId": hex_id(vendor),
+                "productId": hex_id(product),
+                "manufacturer": node.get("manufacturer"),
+                "product": node.get("_name"),
+                "serial": serial or None,
+            })
+        for child in node.get("_items") or []:
+            walk_usb(child, str(node.get("location_id") or bus))
+
+    for top in tree.get("SPUSBDataType") or []:
+        walk_usb(top)
 
 ios = [line.strip() for line in run(["idevice_id", "-l"]).splitlines() if line.strip()]
 

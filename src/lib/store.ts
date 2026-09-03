@@ -45,7 +45,7 @@ export function defaultSettings(): Settings {
     gadsOrigin: "",
     workspaceId: "",
     pollSeconds: 8,
-    downGraceSeconds: 45,
+    downGraceSeconds: 60,
     recoverNotify: true,
     ntfyServer: "https://ntfy.sh",
     ntfyTopic: "",
@@ -67,12 +67,21 @@ export function defaultSettings(): Settings {
 
 export function loadStoredSettings(): Settings {
   const stored = readJson<Partial<Settings>>("settings.json", {});
-  return { ...defaultSettings(), ...stored };
+  const merged = { ...defaultSettings(), ...stored };
+  if (!stored.collectorToken) {
+    writeJson("settings.json", merged);
+  }
+  return merged;
 }
 
 export function loadSettingsMeta(): { settings: Settings; fromEnv: (keyof Settings)[] } {
   loadDotEnv();
-  return applyEnv(loadStoredSettings());
+  const loaded = applyEnv(loadStoredSettings());
+  loaded.settings.downGraceSeconds = Math.min(
+    600,
+    Math.max(15, loaded.settings.downGraceSeconds || 60),
+  );
+  return loaded;
 }
 
 export function loadSettings(): Settings {
@@ -102,12 +111,33 @@ export function saveMemory(memory: Record<string, DeviceMemory>) {
   writeJson("memory.json", memory);
 }
 
+const HOST_SNAPSHOT_STALE_MS = 120_000;
+
+export function loadHostSnapshots(): HostSnapshot[] {
+  const raw = readJson<HostSnapshot[] | HostSnapshot | null>("host-snapshot.json", null);
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : [raw];
+}
+
 export function loadHostSnapshot(): HostSnapshot | null {
-  return readJson<HostSnapshot | null>("host-snapshot.json", null);
+  const fresh = loadHostSnapshots().filter(
+    (host) => Date.now() - host.receivedAt < HOST_SNAPSHOT_STALE_MS,
+  );
+  if (!fresh.length) return null;
+  return {
+    receivedAt: Math.max(...fresh.map((host) => host.receivedAt)),
+    hostname: fresh.map((host) => host.hostname).join(", "),
+    adb: fresh.flatMap((host) => host.adb),
+    usb: fresh.flatMap((host) => host.usb),
+    ios: fresh.flatMap((host) => host.ios ?? []),
+    dmesg: fresh.flatMap((host) => host.dmesg).slice(-20),
+  };
 }
 
 export function saveHostSnapshot(snapshot: HostSnapshot) {
-  writeJson("host-snapshot.json", snapshot);
+  const byHost = new Map(loadHostSnapshots().map((host) => [host.hostname, host]));
+  byHost.set(snapshot.hostname, snapshot);
+  writeJson("host-snapshot.json", [...byHost.values()]);
 }
 
 export function tokenFromAuthHeader(header: string | null): string | null {

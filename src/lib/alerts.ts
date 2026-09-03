@@ -55,9 +55,9 @@ export function alertCopy(event: FarmEvent): { title: string; body: string } {
   const prefix =
     event.severity === "recovered"
       ? "Phone back online"
-      : event.severity === "critical"
-        ? "Phone down"
-        : "Phone warning";
+      : event.udid === "FARM"
+        ? "Farm"
+        : "Phone down";
   return {
     title: `${prefix}: ${event.name}`,
     body: `${event.title}\n${event.detail}`,

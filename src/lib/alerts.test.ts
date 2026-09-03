@@ -64,5 +64,10 @@ describe("alert channels", () => {
   it("builds a pager title from severity", () => {
     assert.equal(alertCopy(event()).title, "Phone down: Pixel 7");
     assert.equal(alertCopy(event({ severity: "recovered" })).title, "Phone back online: Pixel 7");
+    assert.equal(alertCopy(event({ severity: "warning" })).title, "Phone down: Pixel 7");
+    assert.equal(
+      alertCopy(event({ severity: "warning", udid: "FARM", name: "8 phones" })).title,
+      "Farm: 8 phones",
+    );
   });
 });

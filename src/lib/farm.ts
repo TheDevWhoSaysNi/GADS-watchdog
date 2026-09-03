@@ -100,11 +100,15 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     if (event) newEvents.push(event);
   }
 
-  for (const event of newEvents) {
+  const toSend = collapseBurstAlerts(newEvents, now);
+  for (const event of toSend) {
+    if (event.severity === "info") {
+      event.notified = false;
+      continue;
+    }
     event.notified = await dispatchAlert(settings, event);
   }
-
-  const mergedEvents = [...newEvents, ...events].slice(0, 400);
+  const mergedEvents = [...toSend, ...events].slice(0, 400);
   saveMemory(memory);
   saveEvents(mergedEvents);
 
@@ -205,7 +209,7 @@ function maybeBuildEvent(
         name: device.name,
         severity,
         cause: device.cause,
-        title: `${device.name} has been down for ${formatDuration(elapsed)}`,
+        title: `${device.name} is down`,
         detail: device.causeDetail,
         notified: false,
       };
@@ -227,6 +231,50 @@ function maybeBuildEvent(
   }
 
   return null;
+}
+
+function collapseBurstAlerts(events: FarmEvent[], now: number): FarmEvent[] {
+  const downs = events.filter((event) => event.severity === "warning" || event.severity === "critical");
+  const recovered = events.filter((event) => event.severity === "recovered");
+  const rest = events.filter(
+    (event) => event.severity !== "warning" && event.severity !== "critical" && event.severity !== "recovered",
+  );
+  const out = [...rest];
+
+  if (downs.length >= 3) {
+    out.push({
+      id: randomUUID(),
+      at: now,
+      udid: "FARM",
+      name: `${downs.length} phones`,
+      severity: "warning",
+      cause: "unknown_down",
+      title: `${downs.length} phones are not live`,
+      detail:
+        "This often happens during a provider restart. Check the farm page. A collector on each provider is needed to tell unplugged vs setup failure.",
+      notified: false,
+    });
+  } else {
+    out.push(...downs);
+  }
+
+  if (recovered.length >= 3) {
+    out.push({
+      id: randomUUID(),
+      at: now,
+      udid: "FARM",
+      name: `${recovered.length} phones`,
+      severity: "recovered",
+      cause: "online",
+      title: `${recovered.length} phones are back online`,
+      detail: "A batch of devices became live again.",
+      notified: false,
+    });
+  } else {
+    out.push(...recovered);
+  }
+
+  return out;
 }
 
 function countDrops(memory: DeviceMemory, now: number): number {

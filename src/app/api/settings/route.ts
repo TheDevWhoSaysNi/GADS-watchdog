@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         : body.gadsPassword,
     collectorToken: body.collectorToken || current.collectorToken || defaults.collectorToken,
     pollSeconds: clamp(body.pollSeconds ?? current.pollSeconds, 4, 120),
-    downGraceSeconds: clamp(body.downGraceSeconds ?? current.downGraceSeconds, 10, 600),
+    downGraceSeconds: clamp(body.downGraceSeconds ?? current.downGraceSeconds, 15, 600),
   };
   saveSettings(next);
   const loaded = loadSettingsMeta();

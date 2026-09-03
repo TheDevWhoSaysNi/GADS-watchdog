@@ -41,7 +41,7 @@ export const CAUSE_COPY: Record<
   provider_setup: {
     label: "Stuck in provider setup",
     detail:
-      "ADB (or iOS pairing) can see the phone, but GADS never reached provider_state=live. Check provider logs for GADS-stream install, auto-rotation, WebDriverAgent, or MIUI permission failures.",
+      "The provider host can still see this phone (ADB or iOS pairing), but GADS never reached live. Check provider logs for GADS-stream, WebDriverAgent, or permission failures.",
   },
   stale_heartbeat: {
     label: "Stale provider heartbeat",
@@ -54,14 +54,12 @@ export const CAUSE_COPY: Record<
       "Watchdog cannot reach the GADS hub API. Devices may still be fine on the host; this is a hub/network/auth problem.",
   },
   ios_disconnected: {
-    label: "iOS not paired or unplugged",
-    detail:
-      "GADS does not see this iPhone as live. Without a host collector (idevice_id / USB serial) we cannot tell cable vs WDA vs trust-dialog. Plug in libimobiledevice to split those cases.",
+    label: "Phone down",
+    detail: "GADS does not see this iPhone as live. Check the device or the provider.",
   },
   unknown_down: {
-    label: "Down — cause unclear",
-    detail:
-      "GADS reports the device unavailable, and there is not enough host signal (ADB/USB) to classify it. Install the host collector on the provider machine to distinguish cable vs software.",
+    label: "Phone down",
+    detail: "GADS does not see this phone as live. Check the device or the provider.",
   },
 };
 
@@ -140,10 +138,8 @@ export function classifyCause(
   }
 
   if (isStale(device, now)) return "stale_heartbeat";
-  if (device.providerState && device.providerState !== "live") {
-    return "provider_setup";
-  }
-  if (os === "ios") return "ios_disconnected";
+  // Without a collector we cannot tell unplugged vs WDA vs a powered-off phone.
+  // Do not claim ADB/iOS pairing can see it.
   return "unknown_down";
 }
 
