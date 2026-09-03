@@ -204,7 +204,7 @@ Pilot **one** provider first. Unplug a spare phone, wait for grace, confirm the 
 - Hub port is whatever GADS was started with (`--port 8080` is common on Ubuntu systemd). `.env.example` defaults to 10000.
 - GADS `/health` may return 401 without a login. Watchdog logs in first. If the farm page hangs, rebuild after pulling; older builds could stall on the hub’s SSE device stream.
 - GADS JWTs are origin-bound. Leave `GADS_ORIGIN` blank to use `GADS_URL`. If login works but later calls 401, set the origin GADS already trusts.
-- Blank `GADS_WORKSPACE_ID` uses the default workspace. Farms with many workspaces should set it.
+- Blank `GADS_WORKSPACE_ID` watches every workspace. Set it only if you want one workspace.
 - Do not expose port 43180 to the internet. It has no login of its own.
 - From Windows PowerShell, do not SSH with `"$HOME/..."` — PowerShell expands `$HOME` and can clone into a junk path on Linux. Use single-quoted remote commands or Linux paths.
 

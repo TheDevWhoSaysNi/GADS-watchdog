@@ -83,13 +83,22 @@ export function isStale(device: GadsDevice, now = Date.now()): boolean {
   );
 }
 
+export function normalizeUdid(value: string): string {
+  return value.trim().toLowerCase().replace(/-/g, "");
+}
+
+export function sameUdid(left: string, right: string): boolean {
+  const a = normalizeUdid(left);
+  const b = normalizeUdid(right);
+  return Boolean(a) && a === b;
+}
+
 export function matchAdb(
   snapshot: HostSnapshot | null,
   udid: string,
 ): AdbDevice | undefined {
   if (!snapshot) return undefined;
-  const needle = udid.toLowerCase();
-  return snapshot.adb.find((d) => d.udid.toLowerCase() === needle);
+  return snapshot.adb.find((d) => sameUdid(d.udid, udid));
 }
 
 export function matchUsb(
@@ -97,8 +106,11 @@ export function matchUsb(
   udid: string,
 ): UsbDevice | undefined {
   if (!snapshot) return undefined;
-  const needle = udid.toLowerCase();
-  return snapshot.usb.find((u) => (u.serial ?? "").toLowerCase() === needle);
+  return snapshot.usb.find((u) => sameUdid(u.serial ?? "", udid));
+}
+
+export function matchIos(snapshot: HostSnapshot | null, udid: string): boolean {
+  return Boolean(snapshot?.ios?.some((id) => sameUdid(id, udid)));
 }
 
 export function classifyCause(
@@ -112,9 +124,7 @@ export function classifyCause(
   const os = device.os.toLowerCase();
   const adb = matchAdb(snapshot, device.udid);
   const usb = matchUsb(snapshot, device.udid);
-  const iosListed = snapshot?.ios?.some(
-    (id) => id.toLowerCase() === device.udid.toLowerCase(),
-  );
+  const iosListed = matchIos(snapshot, device.udid);
   const usbPresent = snapshot ? Boolean(usb) : null;
   const adbStatus: AdbStatus = adb?.status ?? (snapshot ? "absent" : "unknown");
 
@@ -155,9 +165,7 @@ export function classifyDevice(
 ): ClassifiedDevice {
   const adb = matchAdb(snapshot, device.udid);
   const usb = matchUsb(snapshot, device.udid);
-  const iosListed = snapshot?.ios?.some(
-    (id) => id.toLowerCase() === device.udid.toLowerCase(),
-  );
+  const iosListed = matchIos(snapshot, device.udid);
   const cause = classifyCause(device, snapshot, hubOk, now);
   const copy = CAUSE_COPY[cause];
 

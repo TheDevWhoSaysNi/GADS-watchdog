@@ -66,7 +66,7 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
       if (!devices.length && hubOk) {
         hubError = workspaceId
           ? "Hub is up, but no devices were returned for this workspace."
-          : "Hub is up, but Watchdog could not find a workspace id. Set it in Settings.";
+          : "Hub is up, but no devices were returned. Check GADS workspaces and the collector hosts.";
       }
     } catch (error) {
       hubOk = false;

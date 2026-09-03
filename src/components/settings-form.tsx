@@ -153,7 +153,7 @@ export function SettingsForm() {
           />
           <Field
             label="Workspace ID"
-            hint="Blank = first/default workspace GADS returns."
+            hint="Blank = watch every GADS workspace. Set an id to watch only one."
             value={form.workspaceId}
             onChange={(value) => patch("workspaceId", value)}
             locked={locked("workspaceId")}

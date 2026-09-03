@@ -1,3 +1,4 @@
+import { normalizeUdid } from "./classify";
 import type { GadsDevice } from "./types";
 
 type GadsEnvelope<T> = {
@@ -23,13 +24,19 @@ type RawHubDevice = {
     workspace_id?: string;
   };
   udid?: string;
+  UDID?: string;
   name?: string;
   os?: string;
   host?: string;
+  Host?: string;
   connected?: boolean;
+  Connected?: boolean;
   available?: boolean;
   provider_state?: string;
+  providerState?: string;
+  ProviderState?: string;
   last_updated_timestamp?: number;
+  lastUpdatedTimestamp?: number;
   in_use?: boolean;
   in_use_by?: string;
 };
@@ -91,6 +98,7 @@ export class GadsClient {
         password: this.password,
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {
@@ -110,6 +118,7 @@ export class GadsClient {
     const res = await fetch(this.url(path, query), {
       headers: this.headers(),
       cache: "no-store",
+      signal: AbortSignal.timeout(12_000),
     });
     if (res.status === 401 && this.authEnabled) {
       this.token = null;
@@ -117,6 +126,7 @@ export class GadsClient {
       const retry = await fetch(this.url(path, query), {
         headers: this.headers(),
         cache: "no-store",
+        signal: AbortSignal.timeout(12_000),
       });
       if (!retry.ok) throw new Error(`GADS ${path} failed (${retry.status})`);
       return (await retry.json()) as T;
@@ -131,6 +141,7 @@ export class GadsClient {
       const res = await fetch(this.url("/health"), {
         headers: this.headers(),
         cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
       });
       if (res.ok) return true;
       // Some hubs keep /health behind a broken anonymous check even after login.
@@ -142,35 +153,75 @@ export class GadsClient {
   }
 
   async resolveWorkspaceId(preferred: string): Promise<string> {
-    if (preferred) return preferred;
-    const candidates = ["/workspaces", "/admin/workspaces"];
-    for (const path of candidates) {
+    return preferred.trim();
+  }
+
+  private async listWorkspaceIds(): Promise<string[]> {
+    for (const path of ["/workspaces", "/admin/workspaces"]) {
       try {
         const body = await this.getJson<unknown>(path);
-        const list = extractWorkspaces(body);
-        const fallback = list.find((w) => w.is_default) ?? list[0];
-        const id = fallback?.id ?? fallback?._id ?? "";
-        if (id) return id;
+        const ids = extractWorkspaces(body)
+          .map((workspace) => workspace.id ?? workspace._id ?? "")
+          .filter(Boolean);
+        if (ids.length) return ids;
       } catch {
         // try the next known path
       }
     }
-    return "";
+    return [];
   }
 
   async listDevices(workspaceId: string): Promise<GadsDevice[]> {
-    const devices = await this.readAvailableDevices(workspaceId);
-    if (devices.length) return devices;
-    return this.readAdminDevices();
+    if (workspaceId) {
+      const devices = await this.readAvailableDevices(workspaceId);
+      if (devices.length) return devices;
+      return this.readAdminDevices(workspaceId);
+    }
+
+    const admin = await this.readAdminDevices("");
+    const live = (
+      await Promise.all(
+        (await this.listWorkspaceIds()).map((id) => this.readAvailableDevices(id)),
+      )
+    ).flat();
+    if (!admin.length && !live.length) return [];
+
+    const byUdid = new Map<string, GadsDevice>();
+    for (const device of admin) {
+      if (device.udid) byUdid.set(normalizeUdid(device.udid), device);
+    }
+    for (const device of live) {
+      if (!device.udid) continue;
+      const key = normalizeUdid(device.udid);
+      const base = byUdid.get(key);
+      byUdid.set(
+        key,
+        base
+          ? {
+              ...base,
+              ...device,
+              name: base.name || device.name,
+              provider: device.provider || base.provider,
+            }
+          : device,
+      );
+    }
+    return [...byUdid.values()];
   }
 
   private async readAvailableDevices(workspaceId: string): Promise<GadsDevice[]> {
     if (!workspaceId) return [];
     await this.login();
-    const res = await fetch(this.url("/available-devices", { workspaceId }), {
-      headers: this.headers({ Accept: "text/event-stream" }),
-      cache: "no-store",
-    });
+    let res: Response;
+    try {
+      res = await fetch(this.url("/available-devices", { workspaceId }), {
+        headers: this.headers({ Accept: "text/event-stream" }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(12_000),
+      });
+    } catch {
+      return [];
+    }
     if (!res.ok || !res.body) return [];
 
     const raw = await readFirstSseData(res);
@@ -179,12 +230,15 @@ export class GadsClient {
     return parsed.map(normalizeHubDevice).filter((d) => d.udid);
   }
 
-  private async readAdminDevices(): Promise<GadsDevice[]> {
+  private async readAdminDevices(workspaceId = ""): Promise<GadsDevice[]> {
     try {
       const body = await this.getJson<
-        GadsEnvelope<{ devices?: Array<RawHubDevice & { udid?: string; name?: string; os?: string }> }>
+        GadsEnvelope<{ devices?: Array<RawHubDevice & { udid?: string; name?: string; os?: string; workspace_id?: string }> }>
       >("/admin/devices");
-      const devices = body.result?.devices ?? [];
+      const devices = (body.result?.devices ?? []).filter((device) => {
+        if (!workspaceId) return true;
+        return String(device.workspace_id ?? device.info?.workspace_id ?? "") === workspaceId;
+      });
       return devices.map((d) =>
         normalizeHubDevice({
           info: d,
@@ -204,7 +258,7 @@ async function readFirstSseData(res: Response): Promise<string | null> {
   if (!reader) return null;
   const decoder = new TextDecoder();
   let buffer = "";
-  const deadline = Date.now() + 4000;
+  const deadline = Date.now() + 15000;
 
   try {
     while (Date.now() < deadline) {
@@ -299,18 +353,19 @@ function parseSseDevices(raw: string): RawHubDevice[] {
 
 function normalizeHubDevice(raw: RawHubDevice): GadsDevice {
   const info = raw.info ?? {};
+  const udid = info.udid ?? raw.udid ?? raw.UDID ?? "";
   return {
-    udid: info.udid ?? raw.udid ?? "",
-    name: info.name ?? raw.name ?? info.udid ?? raw.udid ?? "Unknown device",
+    udid,
+    name: info.name ?? raw.name ?? udid ?? "Unknown device",
     os: info.os ?? raw.os ?? "android",
     osVersion: info.os_version ?? "",
     provider: info.provider ?? "",
     usage: info.usage ?? "",
-    host: raw.host ?? "",
-    connected: Boolean(raw.connected),
+    host: raw.host ?? raw.Host ?? "",
+    connected: Boolean(raw.connected ?? raw.Connected),
     available: Boolean(raw.available),
-    providerState: raw.provider_state ?? "",
-    lastUpdatedTimestamp: raw.last_updated_timestamp ?? 0,
+    providerState: raw.provider_state ?? raw.providerState ?? raw.ProviderState ?? "",
+    lastUpdatedTimestamp: raw.last_updated_timestamp ?? raw.lastUpdatedTimestamp ?? 0,
     inUse: Boolean(raw.in_use),
     inUseBy: raw.in_use_by ?? "",
   };

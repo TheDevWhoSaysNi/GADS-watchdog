@@ -113,4 +113,27 @@ describe("classifyCause", () => {
   it("flags hub outage above per-device causes", () => {
     assert.equal(classifyCause(device(), host(), false, now), "hub_unreachable");
   });
+
+  it("treats dashed and dashless iOS UDIDs as the same phone", () => {
+    const snap = host({
+      adb: [],
+      usb: [],
+      ios: ["00008110-001A4D2E0A88801E"],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008110001A4D2E0A88801E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "provider_setup",
+    );
+  });
 });

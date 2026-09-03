@@ -17,10 +17,15 @@ import json, os, re, socket, subprocess, sys, urllib.error, urllib.request
 watch_url, token = sys.argv[1], sys.argv[2]
 
 
-def run(cmd):
+os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:" + os.environ.get("PATH", "")
+
+
+def run(cmd, timeout=None):
     try:
-        return subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
-    except (subprocess.CalledProcessError, FileNotFoundError):
+        return subprocess.check_output(
+            cmd, text=True, stderr=subprocess.DEVNULL, timeout=timeout
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         return ""
 
 
@@ -32,7 +37,7 @@ def hex_id(value):
 
 
 adb = []
-for line in run(["adb", "devices", "-l"]).splitlines():
+for line in run(["adb", "devices", "-l"], timeout=8).splitlines():
     if not line.strip() or line.startswith("List of devices"):
         continue
     parts = line.split()
@@ -51,6 +56,29 @@ for line in run(["adb", "devices", "-l"]).splitlines():
         "product": extra.get("product"),
         "model": extra.get("model"),
     })
+
+def ios_from_goios():
+    found = []
+    for line in run(["ios", "list"], timeout=20).splitlines():
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and obj.get("deviceList"):
+            return [str(item) for item in obj["deviceList"]]
+        if isinstance(obj, list):
+            return [str(item) for item in obj]
+    return found
+
+
+# go-ios is the reliable listing on large Mac farms. libimobiledevice can hang.
+ios = ios_from_goios()
+if not ios:
+    ios = [
+        line.strip()
+        for line in run(["idevice_id", "-l"], timeout=8).splitlines()
+        if line.strip() and not line.startswith("{")
+    ]
 
 usb = []
 root = "/sys/bus/usb/devices"
@@ -78,9 +106,10 @@ if os.path.isdir(root):
             "product": read("product"),
             "serial": read("serial") or None,
         })
-elif sys.platform == "darwin":
+elif sys.platform == "darwin" and not ios:
+    # system_profiler is very slow on large iPhone farms; skip when go-ios already listed them.
     try:
-        raw = run(["system_profiler", "SPUSBDataType", "-json"])
+        raw = run(["system_profiler", "SPUSBDataType", "-json"], timeout=25)
         tree = json.loads(raw or "{}")
     except json.JSONDecodeError:
         tree = {}
@@ -107,14 +136,13 @@ elif sys.platform == "darwin":
     for top in tree.get("SPUSBDataType") or []:
         walk_usb(top)
 
-ios = [line.strip() for line in run(["idevice_id", "-l"]).splitlines() if line.strip()]
-
 dmesg = []
-kernel = run(["dmesg", "-T"]) or run(["dmesg"])
-for line in kernel.splitlines()[-200:]:
-    if re.search(r"usb|over-current|disconnect|xhci", line, re.I):
-        dmesg.append(line[-240:])
-dmesg = dmesg[-20:]
+if sys.platform != "darwin":
+    kernel = run(["dmesg", "-T"], timeout=3) or run(["dmesg"], timeout=3)
+    for line in kernel.splitlines()[-200:]:
+        if re.search(r"usb|over-current|disconnect|xhci", line, re.I):
+            dmesg.append(line[-240:])
+    dmesg = dmesg[-20:]
 
 payload = {
     "hostname": socket.gethostname(),
