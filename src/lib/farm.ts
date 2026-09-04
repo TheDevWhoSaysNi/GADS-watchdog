@@ -26,6 +26,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 let lastPollAt = 0;
 let lastSnapshot: FarmSnapshot | null = null;
 let pollInFlight: Promise<FarmSnapshot> | null = null;
+let backgroundPollStarted = false;
 
 export async function getFarmSnapshot(force = false): Promise<FarmSnapshot> {
   const settings = loadSettings();
@@ -38,6 +39,21 @@ export async function getFarmSnapshot(force = false): Promise<FarmSnapshot> {
     pollInFlight = null;
   });
   return pollInFlight;
+}
+
+export function startFarmPoller() {
+  if (backgroundPollStarted) return;
+  backgroundPollStarted = true;
+  const loop = async () => {
+    try {
+      await getFarmSnapshot(true);
+    } catch (error) {
+      console.error("[watchdog] background poll failed", error);
+    }
+    const waitMs = Math.max(4, loadSettings().pollSeconds) * 1000;
+    setTimeout(loop, waitMs);
+  };
+  void loop();
 }
 
 async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
@@ -107,6 +123,9 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
       continue;
     }
     event.notified = await dispatchAlert(settings, event);
+    if (!event.notified) {
+      console.error("[watchdog] alert not delivered", event.severity, event.cause);
+    }
   }
   const mergedEvents = [...toSend, ...events].slice(0, 400);
   saveMemory(memory);

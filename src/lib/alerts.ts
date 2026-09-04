@@ -199,8 +199,12 @@ async function post(
       body = JSON.stringify(init.json);
     }
     const res = await fetch(url, { method: "POST", headers, body });
+    if (!res.ok) {
+      console.error("[watchdog] alert HTTP", res.status);
+    }
     return res.ok;
-  } catch {
+  } catch (error) {
+    console.error("[watchdog] alert request failed", error instanceof Error ? error.message : error);
     return false;
   }
 }
