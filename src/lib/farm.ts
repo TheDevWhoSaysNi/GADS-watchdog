@@ -17,6 +17,7 @@ import {
 import {
   providerIsQuiet,
   providerKey,
+  suppressAlertWhileQuiet,
   updateProviderQuiet,
 } from "./provider-quiet";
 import type {
@@ -212,17 +213,18 @@ function maybeBuildEvent(
   now: number,
   quiet: boolean,
 ): FarmEvent | null {
-  if (quiet) return null;
-
   const wasOnline = !prev || prev.lastCause === "online";
   const isOnline = device.cause === "online";
-
-  if (
+  const recoveryDue =
     isOnline &&
-    prev?.incidentAlerted &&
+    prev != null &&
+    prev.incidentAlerted &&
     prev.lastCause !== "online" &&
-    settings.recoverNotify
-  ) {
+    settings.recoverNotify;
+
+  if (suppressAlertWhileQuiet(quiet, recoveryDue)) return null;
+
+  if (recoveryDue && prev) {
     return {
       id: randomUUID(),
       at: now,

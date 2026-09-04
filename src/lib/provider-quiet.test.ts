@@ -5,6 +5,7 @@ import {
   looksLikeProviderRestart,
   providerIsQuiet,
   providerKey,
+  suppressAlertWhileQuiet,
   updateProviderQuiet,
 } from "./provider-quiet.ts";
 
@@ -103,5 +104,11 @@ describe("provider quiet window", () => {
 
   it("keys quiet windows by provider name", () => {
     assert.equal(providerKey({ provider: "suncoast-macmini-04" }), "suncoast-macmini-04");
+  });
+
+  it("still allows a recovery for a phone that was already paged down", () => {
+    assert.equal(suppressAlertWhileQuiet(true, false), true);
+    assert.equal(suppressAlertWhileQuiet(true, true), false);
+    assert.equal(suppressAlertWhileQuiet(false, true), false);
   });
 });

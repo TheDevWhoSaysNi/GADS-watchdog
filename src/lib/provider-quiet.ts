@@ -76,3 +76,11 @@ export function providerIsQuiet(
   if (state.liveSince == null) return true;
   return now - state.liveSince < settleMs;
 }
+
+/** Bounce noise stays silent. A phone we already paged as down still gets its recovery. */
+export function suppressAlertWhileQuiet(
+  quiet: boolean,
+  recoveryOfPagedDown: boolean,
+): boolean {
+  return quiet && !recoveryOfPagedDown;
+}
