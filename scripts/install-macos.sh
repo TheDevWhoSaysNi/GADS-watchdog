@@ -37,7 +37,7 @@ cat > "$PLIST" <<EOF
   <key>EnvironmentVariables</key>
   <dict>
     <key>PORT</key>
-    <string>43180</string>
+    <string>48080</string>
     <key>PATH</key>
     <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
   </dict>
@@ -59,6 +59,6 @@ launchctl enable "gui/$(id -u)/$LABEL"
 launchctl kickstart -k "gui/$(id -u)/$LABEL"
 
 echo "Installed launchd agent $PLIST"
-echo "Watchdog should be on http://127.0.0.1:43180"
+echo "Watchdog should be on http://127.0.0.1:48080"
 echo "Guided: open /setup    Expert: edit .env then: launchctl kickstart -k gui/$(id -u)/$LABEL"
-echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md"
+echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md then scripts/discover-host.sh"

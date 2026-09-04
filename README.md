@@ -9,7 +9,7 @@ This is not a GADS fork. Your farm stays on the official hub, provider, and [Web
 Public repo: [github.com/TheDevWhoSaysNi/GADS-watchdog](https://github.com/TheDevWhoSaysNi/GADS-watchdog)
 
 **Install (humans):** [docs/INSTALL.md](docs/INSTALL.md)
-**Install (Cursor / Claude Code / other agents):** [AGENTS.md](AGENTS.md)
+**Install (Cursor / Claude Code / other CLI agents):** [AGENTS.md](AGENTS.md) — discover the hub first; farms are not identical.
 
 ## Why a sidecar instead of a fork
 
@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43180/setup](http://127.0.0.1:43180/setup). Install ntfy, generate a topic, test, then paste your hub URL.
+Open [http://127.0.0.1:48080/setup](http://127.0.0.1:48080/setup). Install ntfy, generate a topic, test, then paste your hub URL.
 
 ### 2. Service (Linux / Windows PowerShell / macOS Terminal)
 

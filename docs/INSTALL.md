@@ -2,7 +2,9 @@
 
 This sidecar watches an official [GADS](https://github.com/shamanec/GADS) hub and pages you when phones stay down. It does not replace GADS. iOS remote control uses shamanec’s [WebDriverAgent](https://github.com/shamanec/WebDriverAgent) fork — keep that on the official repo too.
 
-You need **Node.js 20+** and `npm`. Watchdog listens on **port 43180**.
+You need **Node.js 20+** and `npm`. Watchdog listens on **port 48080** (8080-shaped, not the GADS hub port).
+
+CLI agents (Cursor, Claude Code, and similar): follow [AGENTS.md](../AGENTS.md). Run `scripts/discover-host.sh` on the hub (and each USB host) before writing `.env`. Do not assume GADS is on port 10000 or that every farm looks like the last one.
 
 ## Which machine gets what
 
@@ -41,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43180/setup](http://127.0.0.1:43180/setup).
+Open [http://127.0.0.1:48080/setup](http://127.0.0.1:48080/setup).
 
 1. Peek at the demo farm if you want.
 2. Install [ntfy](https://ntfy.sh) on your phone (no account).
@@ -154,7 +156,7 @@ After `.env` changes:
 launchctl kickstart -k "gui/$(id -u)/com.gads.watchdog"
 ```
 
-UI: [http://127.0.0.1:43180](http://127.0.0.1:43180). Send a test alert from Settings.
+UI: [http://127.0.0.1:48080](http://127.0.0.1:48080). Send a test alert from Settings.
 
 ## Grace period and provider restarts
 
@@ -170,18 +172,18 @@ Print the token from the hub (Settings → collector token), or from the hub `.e
 
 ```bash
 chmod +x scripts/*.sh
-WATCH_URL=http://127.0.0.1:43180 \
+WATCH_URL=http://127.0.0.1:48080 \
 COLLECTOR_TOKEN='paste-token' \
 ./scripts/install-collector-linux.sh
 ```
 
-If the collector is on another machine, `WATCH_URL` is the Watchdog URL, e.g. `http://192.168.254.3:43180`. Port **43180** must be reachable on the LAN.
+If the collector is on another machine, `WATCH_URL` is the Watchdog URL on the LAN, e.g. `http://<hub-lan-ip>:48080`. Discover that IP; do not assume a previous farm’s address. Port **48080** must be reachable from the USB host.
 
 **macOS provider (Mac Mini, etc.)**
 
 ```bash
 chmod +x scripts/*.sh
-WATCH_URL=http://192.168.254.3:43180 \
+WATCH_URL=http://<hub-lan-ip>:48080 \
 COLLECTOR_TOKEN='paste-token' \
 ./scripts/install-collector-macos.sh
 ```
@@ -205,7 +207,7 @@ Pilot **one** provider first. Unplug a spare phone, wait for grace, confirm the 
 - GADS `/health` may return 401 without a login. Watchdog logs in first. If the farm page hangs, rebuild after pulling; older builds could stall on the hub’s SSE device stream.
 - GADS JWTs are origin-bound. Leave `GADS_ORIGIN` blank to use `GADS_URL`. If login works but later calls 401, set the origin GADS already trusts.
 - Blank `GADS_WORKSPACE_ID` watches every workspace. Set it only if you want one workspace.
-- Do not expose port 43180 to the internet. It has no login of its own.
+- Do not expose port 48080 to the internet. It has no login of its own.
 - From Windows PowerShell, do not SSH with `"$HOME/..."` — PowerShell expands `$HOME` and can clone into a junk path on Linux. Use single-quoted remote commands or Linux paths.
 
 ## Upstream

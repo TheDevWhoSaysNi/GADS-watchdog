@@ -49,7 +49,7 @@ Register-ScheduledTask `
 Start-ScheduledTask -TaskName $TaskName
 
 Write-Host "Installed scheduled task '$TaskName'."
-Write-Host "Watchdog should be on http://127.0.0.1:43180"
+Write-Host "Watchdog should be on http://127.0.0.1:48080"
 Write-Host "Guided: open /setup    Expert: edit .env, then Restart-ScheduledTask -TaskName '$TaskName'"
-Write-Host "Full steps: docs/INSTALL.md    Agents: AGENTS.md"
+Write-Host "Full steps: docs/INSTALL.md    Agents: AGENTS.md then scripts/discover-host.sh"
 Write-Host "Uninstall: Unregister-ScheduledTask -TaskName '$TaskName' -Confirm:`$false"

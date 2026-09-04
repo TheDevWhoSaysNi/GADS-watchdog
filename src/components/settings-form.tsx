@@ -326,7 +326,7 @@ export function SettingsForm() {
             locked={locked("collectorToken")}
           />
           <pre className="overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">
-{`WATCH_URL=http://127.0.0.1:43180 \\
+{`WATCH_URL=http://127.0.0.1:48080 \\
 COLLECTOR_TOKEN=${form.collectorToken || "YOUR_TOKEN"} \\
 ./scripts/host-collector.sh`}
           </pre>

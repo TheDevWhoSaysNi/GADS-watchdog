@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LABEL="com.gads.watchdog.collector"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-WATCH_URL="${WATCH_URL:?Set WATCH_URL to the hub Watchdog, e.g. http://192.168.254.3:43180}"
+WATCH_URL="${WATCH_URL:?Set WATCH_URL to the hub Watchdog, e.g. http://HUB_LAN_IP:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN from the hub Watchdog settings}"
 INTERVAL="${INTERVAL:-15}"
 

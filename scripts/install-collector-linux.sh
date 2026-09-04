@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UNIT_NAME="gads-watchdog-collector.service"
-WATCH_URL="${WATCH_URL:?Set WATCH_URL to the Watchdog URL, e.g. http://127.0.0.1:43180}"
+WATCH_URL="${WATCH_URL:?Set WATCH_URL to the Watchdog URL, e.g. http://127.0.0.1:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN from the hub Watchdog settings}"
 INTERVAL="${INTERVAL:-15}"
 

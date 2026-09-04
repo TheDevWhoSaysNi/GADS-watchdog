@@ -33,8 +33,8 @@ After=network.target
 Type=simple
 WorkingDirectory=$ROOT
 EnvironmentFile=-$ROOT/.env
-# 43180 is Watchdog's own port — unused by GADS (8080/10000) and not a well-known service.
-Environment=PORT=43180
+# 48080 is Watchdog (GADS-shaped 8080). Not the hub port (often 8080 or 10000).
+Environment=PORT=48080
 ExecStart=$ROOT/scripts/run-watchdog.sh
 Restart=on-failure
 RestartSec=5
@@ -64,6 +64,6 @@ else
 fi
 
 echo
-echo "Watchdog should be on http://127.0.0.1:43180"
+echo "Watchdog should be on http://127.0.0.1:48080"
 echo "Guided: open /setup    Expert: edit .env and restart"
-echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md"
+echo "Full steps: docs/INSTALL.md    Agents: AGENTS.md then scripts/discover-host.sh"

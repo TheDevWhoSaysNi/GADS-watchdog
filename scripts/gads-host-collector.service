@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/gads-watchdog
-Environment=WATCH_URL=http://127.0.0.1:43180
+Environment=WATCH_URL=http://127.0.0.1:48080
 Environment=COLLECTOR_TOKEN=replace-me
 Environment=INTERVAL=15
 ExecStart=/opt/gads-watchdog/scripts/host-collector.sh

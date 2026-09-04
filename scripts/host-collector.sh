@@ -5,7 +5,7 @@
 # macOS: ./scripts/install-collector-macos.sh
 set -euo pipefail
 
-WATCH_URL="${WATCH_URL:-http://127.0.0.1:43180}"
+WATCH_URL="${WATCH_URL:-http://127.0.0.1:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN to the token from GADS Watchdog Settings}"
 INTERVAL="${INTERVAL:-15}"
 ONCE="${ONCE:-0}"
