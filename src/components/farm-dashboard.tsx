@@ -74,8 +74,7 @@ export function FarmDashboard() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Device farm</h1>
           <p className="mt-1 max-w-2xl text-sm text-zinc-400">
-            GADS stays the control plane. This sidecar watches it, classifies drops, and
-            pages you so you do not have to click through the UI every morning.
+            Status and alerts for phones on the GADS hub.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -104,17 +103,15 @@ export function FarmDashboard() {
       {!farm.alertsConfigured ? (
         <Card className="border-lime-400/25 bg-lime-400/5">
           <CardContent className="py-4 text-sm text-lime-50">
-            Nothing will page you yet. New to this? Use the{" "}
-            <Link href="/setup" className="underline underline-offset-2">
-              guided ntfy setup
-            </Link>
-            . Prefer bots and services? Paste Telegram, Discord, or any other
-            channel in{" "}
+            Alerts are off. Add a channel in{" "}
             <Link href="/settings" className="underline underline-offset-2">
               Settings
             </Link>{" "}
-            or <code className="text-lime-100">.env</code> — blank variables stay
-            silent.
+            or{" "}
+            <Link href="/setup" className="underline underline-offset-2">
+              Start here
+            </Link>
+            .
           </CardContent>
         </Card>
       ) : null}
@@ -122,14 +119,11 @@ export function FarmDashboard() {
       {farm.mode === "demo" ? (
         <Card className="border-sky-400/20 bg-sky-400/5">
           <CardContent className="py-4 text-sm text-sky-50">
-            Demo mode walks an 8-phone farm through real drop patterns on a 3-minute
-            loop: USB unplug, ADB offline (bad cable), unauthorized, provider setup
-            stuck, stale heartbeat, and a short blip that stays under the alert grace
-            period. Point it at your hub in{" "}
+            Demo mode. Switch to your hub in{" "}
             <Link href="/settings" className="underline underline-offset-2">
               Settings
-            </Link>{" "}
-            when you are ready.
+            </Link>
+            .
           </CardContent>
         </Card>
       ) : null}
@@ -162,12 +156,7 @@ export function FarmDashboard() {
       {farm.devices.length === 0 ? (
         <Card className="bg-zinc-900/70">
           <CardContent className="space-y-2 py-8 text-sm text-zinc-400">
-            <p>No devices yet.</p>
-            <p>
-              In live mode, Watchdog logs into GADS, reads{" "}
-              <code className="text-zinc-200">/available-devices</code>, and merges
-              host ADB/USB snapshots from the collector.
-            </p>
+            <p>No devices yet. Check the hub URL in Settings.</p>
           </CardContent>
         </Card>
       ) : (

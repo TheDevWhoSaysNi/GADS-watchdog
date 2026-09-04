@@ -199,6 +199,7 @@ export function buildDemoWorld(now = Date.now()): {
       os: phone.os,
       osVersion: phone.osVersion,
       provider: "home-lab",
+      workspaceId: "",
       usage: phone.usage,
       host: "192.168.1.10:10001",
       connected: state.connected,

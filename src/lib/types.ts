@@ -83,6 +83,7 @@ export type GadsDevice = {
   os: string;
   osVersion: string;
   provider: string;
+  workspaceId: string;
   usage: string;
   host: string;
   connected: boolean;

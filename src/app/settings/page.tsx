@@ -9,9 +9,7 @@ export default function SettingsPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Guided ntfy for a first farm, or paste env-style secrets and run
-            Watchdog as a Linux, Windows, or macOS service. Blank channels are
-            skipped.
+            Hub connection, alerts, and the collector token.
           </p>
         </div>
         <SettingsForm />

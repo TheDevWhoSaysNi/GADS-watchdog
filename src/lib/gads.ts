@@ -32,6 +32,7 @@ type RawHubDevice = {
   connected?: boolean;
   Connected?: boolean;
   available?: boolean;
+  Available?: boolean;
   provider_state?: string;
   providerState?: string;
   ProviderState?: string;
@@ -179,10 +180,16 @@ export class GadsClient {
     }
 
     const admin = await this.readAdminDevices("");
+    const workspaceIds = [
+      ...new Set(
+        [
+          ...(await this.listWorkspaceIds()),
+          ...admin.map((device) => device.workspaceId),
+        ].filter(Boolean),
+      ),
+    ];
     const live = (
-      await Promise.all(
-        (await this.listWorkspaceIds()).map((id) => this.readAvailableDevices(id)),
-      )
+      await mapPool(workspaceIds, 4, (id) => this.readAvailableDevices(id))
     ).flat();
     if (!admin.length && !live.length) return [];
 
@@ -212,22 +219,24 @@ export class GadsClient {
   private async readAvailableDevices(workspaceId: string): Promise<GadsDevice[]> {
     if (!workspaceId) return [];
     await this.login();
-    let res: Response;
+    const controller = new AbortController();
+    const giveUp = setTimeout(() => controller.abort(), 8_000);
     try {
-      res = await fetch(this.url("/available-devices", { workspaceId }), {
+      const res = await fetch(this.url("/available-devices", { workspaceId }), {
         headers: this.headers({ Accept: "text/event-stream" }),
         cache: "no-store",
-        signal: AbortSignal.timeout(12_000),
+        signal: controller.signal,
       });
+      if (!res.ok || !res.body) return [];
+      const raw = await readFirstSseData(res);
+      if (!raw) return [];
+      return parseSseDevices(raw).map(normalizeHubDevice).filter((d) => d.udid);
     } catch {
       return [];
+    } finally {
+      clearTimeout(giveUp);
+      controller.abort();
     }
-    if (!res.ok || !res.body) return [];
-
-    const raw = await readFirstSseData(res);
-    if (!raw) return [];
-    const parsed = parseSseDevices(raw);
-    return parsed.map(normalizeHubDevice).filter((d) => d.udid);
   }
 
   private async readAdminDevices(workspaceId = ""): Promise<GadsDevice[]> {
@@ -258,7 +267,7 @@ async function readFirstSseData(res: Response): Promise<string | null> {
   if (!reader) return null;
   const decoder = new TextDecoder();
   let buffer = "";
-  const deadline = Date.now() + 15000;
+  const deadline = Date.now() + 7000;
 
   try {
     while (Date.now() < deadline) {
@@ -305,18 +314,62 @@ function firstSsePayload(buffer: string, allowPartial = false): string | null {
       .split(/\r?\n/)
       .filter((line) => line.startsWith("data:"))
       .map((line) => line.slice(5).trimStart());
-    if (dataLines.length) return dataLines.join("\n");
+    if (!dataLines.length) continue;
+    const payload = dataLines.join("\n");
+    try {
+      JSON.parse(payload);
+      return payload;
+    } catch {
+      // keep reading; GADS sends one huge data:[...] line
+    }
   }
 
-  const trimmed = buffer.trimStart();
-  if (!trimmed.startsWith("data:")) return null;
-  const payload = trimmed.slice(5).trimStart();
-  try {
-    JSON.parse(payload);
-    return payload;
-  } catch {
-    return null;
+  return firstJsonArray(buffer);
+}
+
+function firstJsonArray(text: string): string | null {
+  const start = text.indexOf("[");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "[") {
+      depth += 1;
+    } else if (ch === "]") {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
   }
+  return null;
+}
+
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      out[index] = await fn(items[index]);
+    }
+  }
+  const workers = Math.min(Math.max(1, limit), items.length || 1);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return out;
 }
 
 function extractWorkspaces(body: unknown): Workspace[] {
@@ -360,10 +413,11 @@ function normalizeHubDevice(raw: RawHubDevice): GadsDevice {
     os: info.os ?? raw.os ?? "android",
     osVersion: info.os_version ?? "",
     provider: info.provider ?? "",
+    workspaceId: info.workspace_id ?? "",
     usage: info.usage ?? "",
     host: raw.host ?? raw.Host ?? "",
     connected: Boolean(raw.connected ?? raw.Connected),
-    available: Boolean(raw.available),
+    available: Boolean(raw.available ?? raw.Available),
     providerState: raw.provider_state ?? raw.providerState ?? raw.ProviderState ?? "",
     lastUpdatedTimestamp: raw.last_updated_timestamp ?? raw.lastUpdatedTimestamp ?? 0,
     inUse: Boolean(raw.in_use),

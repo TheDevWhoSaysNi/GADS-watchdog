@@ -101,10 +101,7 @@ export function SettingsForm() {
       <Card className="bg-zinc-900/70">
         <CardHeader>
           <CardTitle>GADS connection</CardTitle>
-          <CardDescription>
-            Leave demo mode on until the hub URL and login work. Watchdog never
-            replaces the GADS UI — it only reads device state.
-          </CardDescription>
+          <CardDescription>Hub URL and login.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Row label="Demo mode" hint="Simulated 8-phone farm with real drop patterns">
@@ -165,12 +162,10 @@ export function SettingsForm() {
         <CardHeader>
           <CardTitle>Alerting</CardTitle>
           <CardDescription>
-            Every filled channel gets the same drop. Blank channels are skipped.
-            ntfy is the guided-phone option; the rest are paste-a-secret for
-            people who already have bots and webhooks.
+            Filled channels all get the same alert. Blank ones are skipped.
             {form.alertChannels?.length
               ? ` Active: ${form.alertChannels.join(", ")}.`
-              : " No channels active yet."}
+              : " None active yet."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

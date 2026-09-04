@@ -33,6 +33,7 @@ After=network.target
 Type=simple
 WorkingDirectory=$ROOT
 EnvironmentFile=-$ROOT/.env
+# 43180 is Watchdog's own port — unused by GADS (8080/10000) and not a well-known service.
 Environment=PORT=43180
 ExecStart=$ROOT/scripts/run-watchdog.sh
 Restart=on-failure

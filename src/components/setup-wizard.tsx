@@ -148,10 +148,9 @@ export function SetupWizard() {
       {step === 0 ? (
         <Card className="bg-zinc-900/70">
           <CardHeader>
-            <CardTitle>Watchdog sits next to GADS. It does not replace it.</CardTitle>
+            <CardTitle>What this is</CardTitle>
             <CardDescription>
-              Keep using the official GADS hub to control phones. This app only
-              watches them and pages you when one stays down.
+              Watchdog watches your GADS farm and pages you when a phone stays down.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-relaxed text-zinc-300">

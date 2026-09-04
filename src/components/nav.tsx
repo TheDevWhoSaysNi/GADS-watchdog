@@ -21,7 +21,7 @@ export function Nav({ pathname }: { pathname: string }) {
               GADS Watchdog
             </span>
             <span className="hidden text-xs text-zinc-400 sm:block">
-              Sidecar monitor — do not fork the GADS UI
+              Farm monitor
             </span>
           </span>
         </Link>

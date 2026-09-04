@@ -63,7 +63,15 @@ export const CAUSE_COPY: Record<
   },
 };
 
+export function hasHubRuntime(device: GadsDevice): boolean {
+  const state = device.providerState.trim().toLowerCase();
+  return Boolean(state) && state !== "unknown";
+}
+
 export function isGadsLive(device: GadsDevice, now = Date.now()): boolean {
+  // GADS UI "Available" is computed on the hub (live + fresh heartbeat).
+  if (device.available) return true;
+  if (!hasHubRuntime(device)) return false;
   if (!device.connected) return false;
   if (device.providerState !== "live") return false;
   if (
@@ -133,7 +141,11 @@ export function classifyCause(
   if (snapshot) {
     if (os === "ios") {
       if (usbPresent === false && !iosListed) return "usb_disconnect";
-      if (adbStatus === "absent" && (usbPresent || iosListed)) {
+      if (
+        hasHubRuntime(device) &&
+        adbStatus === "absent" &&
+        (usbPresent || iosListed)
+      ) {
         return "provider_setup";
       }
     } else {
@@ -141,7 +153,11 @@ export function classifyCause(
       if (adbStatus === "offline") return "adb_offline";
       if (adbStatus === "unauthorized") return "adb_unauthorized";
       if (usbPresent === true && adbStatus === "absent") return "charge_only_cable";
-      if (adbStatus === "device" && device.providerState !== "live") {
+      if (
+        hasHubRuntime(device) &&
+        adbStatus === "device" &&
+        device.providerState !== "live"
+      ) {
         return "provider_setup";
       }
     }

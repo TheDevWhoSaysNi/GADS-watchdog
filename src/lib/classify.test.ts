@@ -12,6 +12,7 @@ function device(partial: Partial<GadsDevice> = {}): GadsDevice {
     os: "android",
     osVersion: "14",
     provider: "home-lab",
+    workspaceId: "",
     usage: "enabled",
     host: "192.168.1.10:10001",
     connected: true,
@@ -61,7 +62,12 @@ describe("classifyCause", () => {
       adb: [{ udid: "ABC123", status: "offline" }],
     });
     assert.equal(
-      classifyCause(device({ connected: false, providerState: "init" }), snap, true, now),
+      classifyCause(
+        device({ connected: false, available: false, providerState: "init" }),
+        snap,
+        true,
+        now,
+      ),
       "adb_offline",
     );
   });
@@ -71,7 +77,12 @@ describe("classifyCause", () => {
       adb: [{ udid: "ABC123", status: "unauthorized" }],
     });
     assert.equal(
-      classifyCause(device({ connected: false, providerState: "init" }), snap, true, now),
+      classifyCause(
+        device({ connected: false, available: false, providerState: "init" }),
+        snap,
+        true,
+        now,
+      ),
       "adb_unauthorized",
     );
   });
@@ -79,7 +90,7 @@ describe("classifyCause", () => {
   it("flags USB present with no ADB as a charge-only / data-line issue", () => {
     const snap = host({ adb: [] });
     assert.equal(
-      classifyCause(device({ connected: false }), snap, true, now),
+      classifyCause(device({ connected: false, available: false }), snap, true, now),
       "charge_only_cable",
     );
   });
@@ -93,7 +104,12 @@ describe("classifyCause", () => {
 
   it("flags a stale provider heartbeat", () => {
     assert.equal(
-      classifyCause(device({ lastUpdatedTimestamp: now - 10_000 }), null, true, now),
+      classifyCause(
+        device({ available: false, lastUpdatedTimestamp: now - 10_000 }),
+        null,
+        true,
+        now,
+      ),
       "stale_heartbeat",
     );
   });
@@ -112,6 +128,41 @@ describe("classifyCause", () => {
 
   it("flags hub outage above per-device causes", () => {
     assert.equal(classifyCause(device(), host(), false, now), "hub_unreachable");
+  });
+
+  it("treats GADS available as online even without a connected flag", () => {
+    assert.equal(
+      classifyCause(
+        device({ connected: false, available: true, providerState: "live" }),
+        host(),
+        true,
+        now,
+      ),
+      "online",
+    );
+  });
+
+  it("does not call USB-visible phones setup-stuck when GADS never sent runtime state", () => {
+    const snap = host({
+      adb: [],
+      usb: [],
+      ios: ["00008110-001A4D2E0A88801E"],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008110-001A4D2E0A88801E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "unknown",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "unknown_down",
+    );
   });
 
   it("treats dashed and dashless iOS UDIDs as the same phone", () => {

@@ -14,8 +14,7 @@ export default function SetupPage() {
             New to phone farms?
           </h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Four short steps. You will get a push on your phone when a device
-            stays down, without touching GADS itself.
+            Four short steps to get a push when a phone stays down.
           </p>
         </div>
         <SetupWizard />

@@ -17,9 +17,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "GADS Watchdog",
-  description:
-    "Device checker and troubleshooter for GADS phone farms: downtime alerts and USB vs software drop classification.",
+  description: "Alerts and status for a GADS phone farm.",
 };
+
+// TODO: Match the official GADS hub UI (type, color, cards). Prefer loading
+// tokens or the stylesheet from the hub rather than inventing a second look.
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
