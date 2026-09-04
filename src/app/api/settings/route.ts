@@ -33,6 +33,11 @@ export async function POST(request: Request) {
     collectorToken: body.collectorToken || current.collectorToken || defaults.collectorToken,
     pollSeconds: clamp(body.pollSeconds ?? current.pollSeconds, 4, 120),
     downGraceSeconds: clamp(body.downGraceSeconds ?? current.downGraceSeconds, 15, 600),
+    providerSettleSeconds: clamp(
+      body.providerSettleSeconds ?? current.providerSettleSeconds ?? 60,
+      15,
+      300,
+    ),
   };
   saveSettings(next);
   const loaded = loadSettingsMeta();

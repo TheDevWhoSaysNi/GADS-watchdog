@@ -27,6 +27,7 @@ export const ENV_BINDINGS: EnvBinding[] = [
   { env: "GADS_WORKSPACE_ID", key: "workspaceId" },
   { env: "WATCHDOG_POLL_SECONDS", key: "pollSeconds", parse: asInt },
   { env: "WATCHDOG_DOWN_GRACE_SECONDS", key: "downGraceSeconds", parse: asInt },
+  { env: "WATCHDOG_PROVIDER_SETTLE_SECONDS", key: "providerSettleSeconds", parse: asInt },
   { env: "WATCHDOG_RECOVER_NOTIFY", key: "recoverNotify", parse: asBool },
   { env: "WATCHDOG_COLLECTOR_TOKEN", key: "collectorToken" },
   { env: "NTFY_SERVER", key: "ntfyServer" },

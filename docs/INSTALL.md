@@ -158,7 +158,7 @@ UI: [http://127.0.0.1:43180](http://127.0.0.1:43180). Send a test alert from Set
 
 ## Grace period and provider restarts
 
-`WATCHDOG_DOWN_GRACE_SECONDS` is how long a phone must stay not-live before Telegram/ntfy fires. Floor is **15**. If you bounce the GADS provider on a timer, set grace **above that bounce** (90s is a safe start). If three or more phones cross grace at once, Watchdog sends **one** farm message instead of a stack. The service polls on its own; you do not need the dashboard open.
+`WATCHDOG_DOWN_GRACE_SECONDS` is how long a phone must stay not-live before Telegram/ntfy fires. Floor is **15**. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60). Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.
 
 ## Host collectors (why a phone is down)
 

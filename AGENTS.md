@@ -22,7 +22,7 @@ Humans follow [docs/INSTALL.md](docs/INSTALL.md). You should too. This file is t
 - Do not SSH with PowerShell double-quoted strings that contain `$HOME`, `` `id -u` ``, or `timeout=20`. PowerShell expands those and breaks Linux remotes. Use single-quoted remote scripts, or pipe a `.py` file over stdin.
 - Do not clone this repo to a path like `C:UsersRyan` on Linux. That happens when `$HOME` is expanded on Windows before SSH.
 - Do not tell the user an unplug is “USB unplugged” unless a collector on **that** USB host is posting.
-- Do not set grace below 15 seconds. If they restart providers on a timer, set grace above that duration (90s is the usual start).
+- Do not set grace below 15 seconds. Hourly provider restarts are muted per provider until devices are live plus the settle window (default 60s).
 
 ## Layout
 
@@ -30,7 +30,7 @@ Humans follow [docs/INSTALL.md](docs/INSTALL.md). You should too. This file is t
 |---|---|
 | `src/lib/gads.ts` | Hub login + SSE `available-devices` (must tolerate a long `data:[...]` line with no blank line) |
 | `src/lib/classify.ts` | Drop causes. No collector → `unknown_down` (“phone is down”) only |
-| `src/lib/farm.ts` | Poll loop, grace, burst collapse (3+ downs → one farm alert) |
+| `src/lib/farm.ts` | Poll loop, grace, provider restart quiet window, burst collapse |
 | `src/lib/alerts.ts` | ntfy, Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, webhook |
 | `src/lib/store.ts` | `.env` overlay, persisted collector token, **merged** host snapshots by hostname |
 | `scripts/install-linux.sh` | systemd (root → system unit, else user unit) |

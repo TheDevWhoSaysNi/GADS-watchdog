@@ -8,6 +8,7 @@ import type {
   HostSnapshot,
   Settings,
 } from "./types";
+import type { ProviderQuietMap } from "./provider-quiet";
 
 const DATA_DIR = join(process.cwd(), "data");
 
@@ -46,6 +47,7 @@ export function defaultSettings(): Settings {
     workspaceId: "",
     pollSeconds: 8,
     downGraceSeconds: 60,
+    providerSettleSeconds: 60,
     recoverNotify: true,
     ntfyServer: "https://ntfy.sh",
     ntfyTopic: "",
@@ -81,6 +83,10 @@ export function loadSettingsMeta(): { settings: Settings; fromEnv: (keyof Settin
     600,
     Math.max(15, loaded.settings.downGraceSeconds || 60),
   );
+  loaded.settings.providerSettleSeconds = Math.min(
+    300,
+    Math.max(15, loaded.settings.providerSettleSeconds || 60),
+  );
   return loaded;
 }
 
@@ -109,6 +115,14 @@ export function loadMemory(): Record<string, DeviceMemory> {
 
 export function saveMemory(memory: Record<string, DeviceMemory>) {
   writeJson("memory.json", memory);
+}
+
+export function loadProviderQuiet(): ProviderQuietMap {
+  return readJson("provider-quiet.json", {});
+}
+
+export function saveProviderQuiet(quiet: ProviderQuietMap) {
+  writeJson("provider-quiet.json", quiet);
 }
 
 const HOST_SNAPSHOT_STALE_MS = 120_000;

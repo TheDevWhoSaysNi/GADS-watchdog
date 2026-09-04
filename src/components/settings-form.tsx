@@ -179,11 +179,19 @@ export function SettingsForm() {
             />
             <Field
               label="Down grace (seconds)"
-              hint="Minimum 15s. Set this longer than a provider restart so hourly bounces stay quiet."
+              hint="Minimum 15s. Phones must stay down this long before an alert."
               type="number"
               value={String(form.downGraceSeconds)}
               onChange={(value) => patch("downGraceSeconds", Number(value))}
               locked={locked("downGraceSeconds")}
+            />
+            <Field
+              label="Provider settle (seconds)"
+              hint="Quiet window after a provider bounce. Hourly restarts send nothing until this minute after phones are live again."
+              type="number"
+              value={String(form.providerSettleSeconds ?? 60)}
+              onChange={(value) => patch("providerSettleSeconds", Number(value))}
+              locked={locked("providerSettleSeconds")}
             />
           </div>
           <Row label="Notify on recovery">

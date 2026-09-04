@@ -26,6 +26,7 @@ export type Settings = {
   workspaceId: string;
   pollSeconds: number;
   downGraceSeconds: number;
+  providerSettleSeconds: number;
   recoverNotify: boolean;
   ntfyServer: string;
   ntfyTopic: string;

@@ -8,10 +8,17 @@ import {
   loadEvents,
   loadHostSnapshot,
   loadMemory,
+  loadProviderQuiet,
   loadSettings,
   saveEvents,
   saveMemory,
+  saveProviderQuiet,
 } from "./store";
+import {
+  providerIsQuiet,
+  providerKey,
+  updateProviderQuiet,
+} from "./provider-quiet";
 import type {
   ClassifiedDevice,
   DeviceMemory,
@@ -102,6 +109,10 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     ),
   );
 
+  const settleMs = (settings.providerSettleSeconds || 60) * 1000;
+  const quiet = updateProviderQuiet(loadProviderQuiet(), classified, now, settleMs);
+  saveProviderQuiet(quiet);
+
   const newEvents: FarmEvent[] = [];
   for (const device of classified) {
     const prev = memory[device.udid];
@@ -112,7 +123,8 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     device.dropCount24h = countDrops(nextMem, now);
     device.incidentAlerted = nextMem.incidentAlerted;
 
-    const event = maybeBuildEvent(settings, prev, device, nextMem, now);
+    const silenced = providerIsQuiet(quiet, providerKey(device), now, settleMs);
+    const event = maybeBuildEvent(settings, prev, device, nextMem, now, silenced);
     if (event) newEvents.push(event);
   }
 
@@ -198,11 +210,19 @@ function maybeBuildEvent(
   device: ClassifiedDevice,
   next: DeviceMemory,
   now: number,
+  quiet: boolean,
 ): FarmEvent | null {
+  if (quiet) return null;
+
   const wasOnline = !prev || prev.lastCause === "online";
   const isOnline = device.cause === "online";
 
-  if (isOnline && prev && prev.lastCause !== "online" && settings.recoverNotify) {
+  if (
+    isOnline &&
+    prev?.incidentAlerted &&
+    prev.lastCause !== "online" &&
+    settings.recoverNotify
+  ) {
     return {
       id: randomUUID(),
       at: now,
