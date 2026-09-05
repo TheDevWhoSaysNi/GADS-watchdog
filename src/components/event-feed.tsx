@@ -24,7 +24,7 @@ export function EventFeed({ events }: { events: FarmEvent[] }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-100">{event.title}</p>
-                    <p className="mt-1 text-sm text-zinc-400">{event.detail}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-400">{event.detail}</p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span className="font-mono text-[11px] text-zinc-500">
@@ -33,14 +33,16 @@ export function EventFeed({ events }: { events: FarmEvent[] }) {
                     <Badge
                       variant="outline"
                       className={
-                        event.severity === "recovered"
-                          ? "border-lime-400/30 text-lime-200"
-                          : event.severity === "critical"
-                            ? "border-rose-400/30 text-rose-200"
-                            : "border-amber-400/30 text-amber-200"
+                        event.udid === "DAILY"
+                          ? "border-sky-400/30 text-sky-200"
+                          : event.severity === "recovered"
+                            ? "border-lime-400/30 text-lime-200"
+                            : event.severity === "critical"
+                              ? "border-rose-400/30 text-rose-200"
+                              : "border-amber-400/30 text-amber-200"
                       }
                     >
-                      {event.notified ? "alerted" : event.severity}
+                      {event.udid === "DAILY" ? "daily" : event.notified ? "alerted" : event.severity}
                     </Badge>
                   </div>
                 </div>

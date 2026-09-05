@@ -158,6 +158,12 @@ launchctl kickstart -k "gui/$(id -u)/com.gads.watchdog"
 
 UI: [http://127.0.0.1:48080](http://127.0.0.1:48080). Send a test alert from Settings.
 
+## Daily health check
+
+By default Watchdog sends one digest after **04:00** on the Watchdog host clock (catch-up on the first poll if the box was down at 4). It reports how many phones are online, hub and provider CPU / RAM / disk / load / uptime, and phones that dropped in the last 24 hours and are still down. Long-abandoned registered phones are omitted.
+
+Turn it off with `WATCHDOG_DAILY_HEALTH=false`, or change the hour with `WATCHDOG_DAILY_HEALTH_HOUR`. Settings has **Send daily check now** for a one-off (that does not consume the 4am slot). Provider vitals come from collectors, so update `host-collector.sh` on each USB host.
+
 ## Grace period and provider restarts
 
 `WATCHDOG_DOWN_GRACE_SECONDS` is how long a phone must stay not-live before Telegram/ntfy fires. Floor is **15**. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60). Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.

@@ -79,5 +79,16 @@ describe("alert channels", () => {
       ).title,
       "Needs hands-on: Igor 3",
     );
+    assert.equal(
+      alertCopy(
+        event({
+          udid: "DAILY",
+          name: "77/102 online",
+          title: "Daily farm check · 77/102 online",
+          detail: "77 of 102 phones are online.",
+        }),
+      ).title,
+      "Daily farm check · 77/102 online",
+    );
   });
 });

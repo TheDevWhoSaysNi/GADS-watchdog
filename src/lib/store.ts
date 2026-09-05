@@ -52,6 +52,8 @@ export function defaultSettings(): Settings {
   providerRestartEnabled: false,
   providerRestartAfterSeconds: 180,
   providerRestartCooldownSeconds: 900,
+  dailyHealthEnabled: true,
+  dailyHealthHour: 4,
   recoverNotify: true,
     ntfyServer: "https://ntfy.sh",
     ntfyTopic: "",
@@ -99,6 +101,10 @@ export function loadSettingsMeta(): { settings: Settings; fromEnv: (keyof Settin
     3600,
     Math.max(300, loaded.settings.providerRestartCooldownSeconds || 900),
   );
+  loaded.settings.dailyHealthHour = Math.min(
+    23,
+    Math.max(0, loaded.settings.dailyHealthHour ?? 4),
+  );
   return loaded;
 }
 
@@ -143,6 +149,15 @@ export function loadProviderRestart(): ProviderRestartMap {
 
 export function saveProviderRestart(restarts: ProviderRestartMap) {
   writeJson("provider-restart.json", restarts);
+}
+
+export function loadDailyHealthSentAt(): number | null {
+  const raw = readJson<{ lastSentAt?: number }>("daily-health.json", {});
+  return typeof raw.lastSentAt === "number" && raw.lastSentAt > 0 ? raw.lastSentAt : null;
+}
+
+export function saveDailyHealthSentAt(at: number) {
+  writeJson("daily-health.json", { lastSentAt: at });
 }
 
 const HOST_SNAPSHOT_STALE_MS = 120_000;

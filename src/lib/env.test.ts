@@ -38,6 +38,8 @@ describe("env overlay", () => {
       TELEGRAM_CHAT_ID: "99",
       WATCHDOG_POLL_SECONDS: "12",
       WATCHDOG_RECOVER_NOTIFY: "no",
+      WATCHDOG_DAILY_HEALTH: "false",
+      WATCHDOG_DAILY_HEALTH_HOUR: "5",
     });
     assert.equal(next.mode, "live");
     assert.equal(next.gadsUrl, "http://hub:10000");
@@ -46,6 +48,8 @@ describe("env overlay", () => {
     assert.equal(next.telegramChatId, "99");
     assert.equal(next.pollSeconds, 12);
     assert.equal(next.recoverNotify, false);
+    assert.equal(next.dailyHealthEnabled, false);
+    assert.equal(next.dailyHealthHour, 5);
     assert.ok(fromEnv.includes("ntfyTopic"));
     assert.ok(fromEnv.includes("telegramBotToken"));
     assert.equal(fromEnv.includes("discordWebhook"), false);

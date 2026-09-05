@@ -238,6 +238,13 @@ export function buildDemoWorld(now = Date.now()): {
       adb,
       usb,
       ios,
+      vitals: {
+        cpuPercent: 14,
+        memPercent: 38,
+        diskPercent: 22,
+        load1: 0.4,
+        uptimeSeconds: 86_400,
+      },
       dmesg:
         t >= 40 && t < 75
           ? ["usb 1-4: USB disconnect, device number 12", "xhci_hcd: Over-current event on port 4"]

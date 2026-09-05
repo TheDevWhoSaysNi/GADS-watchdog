@@ -13,7 +13,7 @@ SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 
 collect_once() {
   python3 - "$WATCH_URL" "$COLLECTOR_TOKEN" "$SCRIPTS" <<'PY'
-import json, os, re, socket, subprocess, sys, urllib.error, urllib.request
+import json, os, re, socket, subprocess, sys, time, urllib.error, urllib.request
 
 watch_url, token, scripts_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 
@@ -194,6 +194,75 @@ def provider_control():
     }
 
 
+def host_vitals():
+    vitals = {
+        "hostname": socket.gethostname(),
+        "cpuPercent": None,
+        "memPercent": None,
+        "diskPercent": None,
+        "load1": None,
+        "uptimeSeconds": None,
+    }
+    try:
+        vitals["load1"] = round(os.getloadavg()[0], 2)
+    except OSError:
+        pass
+    cores = os.cpu_count() or 1
+    cpu_sum = 0.0
+    for token in run(["ps", "-A", "-o", "%cpu="], timeout=8).split():
+        try:
+            cpu_sum += float(token)
+        except ValueError:
+            pass
+    if cpu_sum:
+        vitals["cpuPercent"] = max(0, min(100, round(cpu_sum / cores)))
+    if sys.platform == "darwin":
+        try:
+            total = int(run(["sysctl", "-n", "hw.memsize"], timeout=4) or 0)
+            page = 4096
+            avail = 0
+            for line in run(["vm_stat"], timeout=5).splitlines():
+                match = re.search(r"page size of (\d+)", line)
+                if match:
+                    page = int(match.group(1))
+                if line.startswith("Pages free") or line.startswith("Pages speculative"):
+                    digits = re.search(r"(\d+)", line)
+                    if digits:
+                        avail += int(digits.group(1)) * page
+            if total:
+                vitals["memPercent"] = max(0, min(100, round((total - avail) / total * 100)))
+        except Exception:
+            pass
+        boot = run(["sysctl", "-n", "kern.boottime"], timeout=4)
+        sec = re.search(r"sec = (\d+)", boot)
+        if sec:
+            vitals["uptimeSeconds"] = max(0, int(time.time()) - int(sec.group(1)))
+    else:
+        try:
+            info = {}
+            with open("/proc/meminfo", encoding="utf-8") as fh:
+                for line in fh:
+                    key, value = line.split(":", 1)
+                    info[key] = int(value.strip().split()[0])
+            total = info.get("MemTotal") or 0
+            avail = info.get("MemAvailable") or info.get("MemFree") or 0
+            if total:
+                vitals["memPercent"] = max(0, min(100, round((total - avail) / total * 100)))
+        except OSError:
+            pass
+        try:
+            with open("/proc/uptime", encoding="utf-8") as fh:
+                vitals["uptimeSeconds"] = int(float(fh.read().split()[0]))
+        except OSError:
+            pass
+    df = run(["df", "-P", "/"], timeout=5).splitlines()
+    if len(df) >= 2:
+        pct = re.search(r"(\d+)%", df[-1])
+        if pct:
+            vitals["diskPercent"] = int(pct.group(1))
+    return vitals
+
+
 payload = {
     "hostname": socket.gethostname(),
     "adb": adb,
@@ -201,6 +270,7 @@ payload = {
     "ios": ios,
     "dmesg": dmesg,
     "providerControl": provider_control(),
+    "vitals": host_vitals(),
 }
 
 req = urllib.request.Request(

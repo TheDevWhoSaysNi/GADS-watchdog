@@ -52,6 +52,9 @@ export function hasAnyAlertChannel(settings: Settings): boolean {
 }
 
 export function alertCopy(event: FarmEvent): { title: string; body: string } {
+  if (event.udid === "DAILY") {
+    return { title: event.title, body: event.detail };
+  }
   const prefix =
     event.severity === "recovered"
       ? "Phone back online"
@@ -80,8 +83,20 @@ async function sendNtfy(settings: Settings, event: FarmEvent): Promise<boolean> 
   const server = settings.ntfyServer.replace(/\/$/, "") || "https://ntfy.sh";
   const headers: Record<string, string> = {
     Title: title,
-    Priority: event.severity === "critical" ? "high" : event.severity === "recovered" ? "default" : "high",
-    Tags: event.severity === "recovered" ? "white_check_mark,iphone" : "warning,iphone",
+    Priority:
+      event.udid === "DAILY"
+        ? "default"
+        : event.severity === "critical"
+          ? "high"
+          : event.severity === "recovered"
+            ? "default"
+            : "high",
+    Tags:
+      event.udid === "DAILY"
+        ? "clipboard,iphone"
+        : event.severity === "recovered"
+          ? "white_check_mark,iphone"
+          : "warning,iphone",
   };
   if (filled(settings.ntfyToken)) headers.Authorization = `Bearer ${settings.ntfyToken}`;
   return post(`${server}/${encodeURIComponent(settings.ntfyTopic)}`, {

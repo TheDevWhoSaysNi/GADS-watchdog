@@ -24,6 +24,7 @@ Keep GADS as the appliance. Put ops here: this sidecar, host/OS hardening, and u
 - Without a collector, a down phone is just **phone down**. With a collector it can say USB unplugged, ADB offline, unauthorized, charge-only cable, or setup/WDA.
 - Pages after a grace period (minimum 15s, default 60s). Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent.
 - If several phones drop at once (provider restart), you get one farm alert instead of a stack.
+- A daily health check (default 4am on the Watchdog host) reports online count, hub and provider CPU / RAM / disk, and phones that dropped in the last 24 hours and are still down.
 - Demo farm is on until you point it at a live hub.
 
 ## Two ways to run it

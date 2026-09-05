@@ -58,6 +58,29 @@ export function SettingsForm() {
     }
   }
 
+  async function testDaily() {
+    const res = await fetch("/api/alerts/daily", { method: "POST" });
+    const body = (await res.json()) as {
+      sent: boolean;
+      configured: boolean;
+      enabled?: boolean;
+      channels?: string[];
+    };
+    if (!body.configured) {
+      toast.error("Fill an alert channel first");
+      return;
+    }
+    if (body.enabled === false) {
+      toast.error("Daily health check is off");
+      return;
+    }
+    toast[body.sent ? "success" : "error"](
+      body.sent
+        ? `Daily check sent via ${body.channels?.join(", ") ?? "configured channels"}`
+        : "Daily check was not delivered",
+    );
+  }
+
   async function testAlert() {
     const res = await fetch("/api/alerts/test", { method: "POST" });
     const body = (await res.json()) as { sent: boolean; configured: boolean; channels?: string[] };
@@ -219,6 +242,24 @@ export function SettingsForm() {
               disabled={locked("recoverNotify")}
             />
           </Row>
+          <Row
+            label="Daily health check"
+            hint="One digest after 4:00 on the Watchdog host clock. Online count, hub and provider CPU/RAM/disk, and phones that dropped in the last 24 hours and are still down."
+          >
+            <Switch
+              checked={form.dailyHealthEnabled !== false}
+              onCheckedChange={(checked) => patch("dailyHealthEnabled", checked)}
+              disabled={locked("dailyHealthEnabled")}
+            />
+          </Row>
+          <Field
+            label="Daily check hour"
+            hint="Hour 0–23 on the Watchdog host clock. Default 4."
+            type="number"
+            value={String(form.dailyHealthHour ?? 4)}
+            onChange={(value) => patch("dailyHealthHour", Number(value))}
+            locked={locked("dailyHealthHour")}
+          />
 
           <p className="pt-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
             Phone push — ntfy
@@ -358,6 +399,9 @@ ALLOW_PROVIDER_RESTART=1 \\
         </Button>
         <Button variant="outline" onClick={testAlert}>
           Send test alert
+        </Button>
+        <Button variant="outline" onClick={testDaily}>
+          Send daily check now
         </Button>
       </div>
     </div>

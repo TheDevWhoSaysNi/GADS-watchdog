@@ -80,6 +80,11 @@ export default function PlaybookPage() {
               If it is still down after the settle window, you get the alert.
               USB unplugs never trigger a restart.
             </p>
+            <p>
+              A daily health check goes out at 4:00 on the Watchdog host clock:
+              how many phones are online, hub and provider CPU / RAM / disk, and
+              any phones that dropped in the last 24 hours and are still down.
+            </p>
           </CardContent>
         </Card>
 

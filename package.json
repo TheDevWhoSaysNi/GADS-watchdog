@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 48080 --hostname 0.0.0.0",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/lib/classify.test.ts src/lib/alerts.test.ts src/lib/env.test.ts src/lib/provider-quiet.test.ts src/lib/provider-restart.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/classify.test.ts src/lib/alerts.test.ts src/lib/env.test.ts src/lib/provider-quiet.test.ts src/lib/provider-restart.test.ts src/lib/daily-health.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

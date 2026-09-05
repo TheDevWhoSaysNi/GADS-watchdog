@@ -51,6 +51,8 @@ export async function POST(request: Request) {
       300,
       3600,
     ),
+    dailyHealthEnabled: Boolean(body.dailyHealthEnabled ?? current.dailyHealthEnabled ?? true),
+    dailyHealthHour: clamp(body.dailyHealthHour ?? current.dailyHealthHour ?? 4, 0, 23),
   };
   saveSettings(next);
   const loaded = loadSettingsMeta();

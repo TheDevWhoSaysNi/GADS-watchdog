@@ -31,6 +31,8 @@ export type Settings = {
   providerRestartEnabled: boolean;
   providerRestartAfterSeconds: number;
   providerRestartCooldownSeconds: number;
+  dailyHealthEnabled: boolean;
+  dailyHealthHour: number;
   recoverNotify: boolean;
   ntfyServer: string;
   ntfyTopic: string;
@@ -73,6 +75,15 @@ export type UsbDevice = {
   serial?: string;
 };
 
+export type HostVitals = {
+  hostname?: string;
+  cpuPercent: number | null;
+  memPercent: number | null;
+  diskPercent: number | null;
+  load1: number | null;
+  uptimeSeconds: number | null;
+};
+
 export type ProviderControl = {
   allowed: boolean;
   kind: "launchd" | "systemd" | "none";
@@ -88,6 +99,7 @@ export type HostSnapshot = {
   ios?: string[];
   dmesg: string[];
   providerControl?: ProviderControl;
+  vitals?: HostVitals;
 };
 
 export type GadsDevice = {

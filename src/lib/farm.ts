@@ -6,17 +6,21 @@ import { formatDuration } from "./format";
 import { GadsClient } from "./gads";
 import {
   loadEvents,
+  loadDailyHealthSentAt,
   loadHostSnapshot,
   loadHostSnapshots,
   loadMemory,
   loadProviderQuiet,
   loadProviderRestart,
   loadSettings,
+  saveDailyHealthSentAt,
   saveEvents,
   saveMemory,
   saveProviderQuiet,
   saveProviderRestart,
 } from "./store";
+import { buildDailyHealthEvent, dailyHealthDue } from "./daily-health";
+import { collectLocalVitalsReady } from "./vitals";
 import {
   providerIsQuiet,
   providerKey,
@@ -37,6 +41,7 @@ import type {
   FarmEvent,
   FarmSnapshot,
   GadsDevice,
+  HostSnapshot,
   Settings,
 } from "./types";
 
@@ -44,17 +49,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 let lastPollAt = 0;
 let lastSnapshot: FarmSnapshot | null = null;
+let lastHosts: HostSnapshot[] = [];
 let pollInFlight: Promise<FarmSnapshot> | null = null;
 let backgroundPollStarted = false;
 
-export async function getFarmSnapshot(force = false): Promise<FarmSnapshot> {
+export async function getFarmSnapshot(
+  force = false,
+  options?: { skipDaily?: boolean },
+): Promise<FarmSnapshot> {
   const settings = loadSettings();
   const intervalMs = Math.max(4, settings.pollSeconds) * 1000;
   if (!force && lastSnapshot && Date.now() - lastPollAt < intervalMs) {
     return lastSnapshot;
   }
   if (pollInFlight) return pollInFlight;
-  pollInFlight = refreshFarm(settings).finally(() => {
+  pollInFlight = refreshFarm(settings, options).finally(() => {
     pollInFlight = null;
   });
   return pollInFlight;
@@ -75,7 +84,10 @@ export function startFarmPoller() {
   void loop();
 }
 
-async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
+async function refreshFarm(
+  settings: Settings,
+  options?: { skipDaily?: boolean },
+): Promise<FarmSnapshot> {
   const now = Date.now();
   let devices: GadsDevice[] = [];
   let host = loadHostSnapshot();
@@ -204,8 +216,14 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     }
   }
   const mergedEvents = [...toSend, ...events].slice(0, 400);
+  const hostsForDaily = settings.mode === "demo" && host ? [host] : freshHosts;
+  lastHosts = hostsForDaily;
+  const daily = options?.skipDaily
+    ? null
+    : await maybeSendDailyHealth(settings, classified, hostsForDaily, hubOk, hubError, now);
+  if (daily) mergedEvents.unshift(daily);
   saveMemory(memory);
-  saveEvents(mergedEvents);
+  saveEvents(mergedEvents.slice(0, 400));
 
   const snapshot: FarmSnapshot = {
     generatedAt: now,
@@ -391,6 +409,57 @@ function collapseBurstAlerts(events: FarmEvent[], now: number): FarmEvent[] {
   }
 
   return out;
+}
+
+async function maybeSendDailyHealth(
+  settings: Settings,
+  devices: ClassifiedDevice[],
+  hosts: HostSnapshot[],
+  hubOk: boolean,
+  hubError: string | null,
+  now: number,
+  force = false,
+): Promise<FarmEvent | null> {
+  if (!settings.dailyHealthEnabled || !hasAnyAlertChannel(settings)) return null;
+  const lastSent = loadDailyHealthSentAt();
+  if (!force && !dailyHealthDue(now, settings.dailyHealthHour ?? 4, lastSent)) return null;
+  const event = buildDailyHealthEvent({
+    now,
+    hubOk,
+    hubError,
+    hubVitals: await collectLocalVitalsReady(),
+    hosts,
+    devices,
+  });
+  event.notified = await dispatchAlert(settings, event);
+  if (event.notified && !force) saveDailyHealthSentAt(now);
+  else if (!event.notified) console.error("[watchdog] daily health not delivered");
+  return event;
+}
+
+export async function sendDailyHealthNow(): Promise<{ sent: boolean; preview: string }> {
+  const snapshot = await getFarmSnapshot(true, { skipDaily: true });
+  const settings = loadSettings();
+  const event = await maybeSendDailyHealth(
+    settings,
+    snapshot.devices,
+    lastHosts,
+    snapshot.hubOk,
+    snapshot.hubError,
+    Date.now(),
+    true,
+  );
+  if (event) {
+    const merged = [event, ...loadEvents()].slice(0, 400);
+    saveEvents(merged);
+    if (lastSnapshot) {
+      lastSnapshot = { ...lastSnapshot, events: merged.slice(0, 80) };
+    }
+  }
+  return {
+    sent: Boolean(event?.notified),
+    preview: event ? `${event.title}\n${event.detail}` : "Daily health is off or no alert channel is configured.",
+  };
 }
 
 function countDrops(memory: DeviceMemory, now: number): number {

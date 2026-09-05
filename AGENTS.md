@@ -86,7 +86,7 @@ curl -sS -X POST http://127.0.0.1:48080/api/alerts/test
 
 Confirm the human got the ping. Do not paste the token back. Extra channels: leave blank to skip; filled ones all get the same event.
 
-The service **polls in the background**. The dashboard does not need to stay open.
+The service **polls in the background**. The dashboard does not need to stay open. A daily digest goes out after 04:00 local unless `WATCHDOG_DAILY_HEALTH=false`.
 
 ## Phase 3 — collectors (USB hosts only)
 
@@ -106,6 +106,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer.
 - Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then page if the phone is still down after settle. Never restart for USB unplug.
+- Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.
 
@@ -127,7 +128,9 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 |---|---|
 | `src/lib/gads.ts` | Hub login + SSE `available-devices` |
 | `src/lib/classify.ts` | Drop causes |
-| `src/lib/farm.ts` | Poll loop, grace, provider quiet window, burst collapse |
+| `src/lib/farm.ts` | Poll loop, grace, provider quiet window, burst collapse, daily digest |
+| `src/lib/daily-health.ts` | 4am health check copy and schedule |
+| `src/lib/vitals.ts` | Hub CPU / RAM / disk for the daily digest |
 | `src/lib/provider-quiet.ts` | Hourly restart mute + settle |
 | `src/lib/alerts.ts` | ntfy, Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, webhook |
 | `src/lib/store.ts` | `.env` overlay, collector token, merged host snapshots |
@@ -148,4 +151,4 @@ Collectors POST `/api/host/snapshot` with `Authorization: Bearer <token>`.
 npm test
 ```
 
-`classify.test.ts`, `alerts.test.ts`, `env.test.ts`, `provider-quiet.test.ts`. Hub Node may be 20 and lack `--experimental-strip-types`; run tests on a Node 22+ box if needed. Production only needs `npm run build`.
+`classify.test.ts`, `alerts.test.ts`, `env.test.ts`, `provider-quiet.test.ts`, `provider-restart.test.ts`, `daily-health.test.ts`. Hub Node may be 20 and lack `--experimental-strip-types`; run tests on a Node 22+ box if needed. Production only needs `npm run build`.

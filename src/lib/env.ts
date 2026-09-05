@@ -31,6 +31,8 @@ export const ENV_BINDINGS: EnvBinding[] = [
   { env: "WATCHDOG_PROVIDER_RESTART", key: "providerRestartEnabled", parse: asBool },
   { env: "WATCHDOG_PROVIDER_RESTART_AFTER_SECONDS", key: "providerRestartAfterSeconds", parse: asInt },
   { env: "WATCHDOG_PROVIDER_RESTART_COOLDOWN_SECONDS", key: "providerRestartCooldownSeconds", parse: asInt },
+  { env: "WATCHDOG_DAILY_HEALTH", key: "dailyHealthEnabled", parse: asBool },
+  { env: "WATCHDOG_DAILY_HEALTH_HOUR", key: "dailyHealthHour", parse: asInt },
   { env: "WATCHDOG_RECOVER_NOTIFY", key: "recoverNotify", parse: asBool },
   { env: "WATCHDOG_COLLECTOR_TOKEN", key: "collectorToken" },
   { env: "NTFY_SERVER", key: "ntfyServer" },

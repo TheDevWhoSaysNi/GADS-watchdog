@@ -7,9 +7,23 @@ import {
   tokenFromAuthHeader,
 } from "@/lib/store";
 import { markRestartDelivered, pendingRestartForHost } from "@/lib/provider-restart";
-import type { HostSnapshot, ProviderControl } from "@/lib/types";
+import type { HostSnapshot, HostVitals, ProviderControl } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+function readVitals(raw: unknown): HostVitals | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const value = raw as Partial<HostVitals>;
+  const num = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? n : null);
+  return {
+    hostname: typeof value.hostname === "string" ? value.hostname : undefined,
+    cpuPercent: num(value.cpuPercent),
+    memPercent: num(value.memPercent),
+    diskPercent: num(value.diskPercent),
+    load1: num(value.load1),
+    uptimeSeconds: num(value.uptimeSeconds),
+  };
+}
 
 function readProviderControl(raw: unknown): ProviderControl | undefined {
   if (!raw || typeof raw !== "object") return undefined;
@@ -39,6 +53,7 @@ export async function POST(request: Request) {
     ios: Array.isArray(body.ios) ? body.ios : [],
     dmesg: Array.isArray(body.dmesg) ? body.dmesg : [],
     providerControl: readProviderControl(body.providerControl),
+    vitals: readVitals(body.vitals),
   };
   saveHostSnapshot(snapshot);
 
