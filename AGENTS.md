@@ -97,13 +97,15 @@ Skip if they only want “phone is down” from the hub. Collectors are required
 3. Clone **this repo** (or copy `scripts/host-collector.sh` + install-collector-*) on the USB host. `npm install` is not required for collectors.
 4. Linux: `WATCH_URL=… COLLECTOR_TOKEN=… ./scripts/install-collector-linux.sh`
 5. macOS: same with `install-collector-macos.sh`. launchd PATH must include `/usr/local/bin:/opt/homebrew/bin` (the install script sets this). Prefer `ios list` (go-ios); `idevice_id` can hang on large farms — current `host-collector.sh` tries go-ios first.
-6. **Pilot one host.** Confirm `/api/farm` `collectorHostname` includes it and an unplug becomes **USB unplugged**. Then the rest.
+6. Optional provider auto-restart: only if they have a real GADS service (`com.gads.provider` launchd or `gads-provider.service`) **and** they opt in. Hub: `WATCHDOG_PROVIDER_RESTART=true`. Collector: `ALLOW_PROVIDER_RESTART=1`. The collector needs passwordless `sudo launchctl kickstart -k system/com.gads.provider` (or systemd restart). Leave both off by default.
+7. **Pilot one host.** Confirm `/api/farm` `collectorHostname` includes it and an unplug becomes **USB unplugged**. Then the rest.
 
 Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 
 ## Phase 4 — tune
 
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer.
+- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then page if the phone is still down after settle. Never restart for USB unplug.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.
 

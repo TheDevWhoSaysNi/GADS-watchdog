@@ -7,8 +7,10 @@ UNIT_NAME="gads-watchdog-collector.service"
 WATCH_URL="${WATCH_URL:?Set WATCH_URL to the Watchdog URL, e.g. http://127.0.0.1:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN from the hub Watchdog settings}"
 INTERVAL="${INTERVAL:-15}"
+ALLOW_PROVIDER_RESTART="${ALLOW_PROVIDER_RESTART:-}"
+PROVIDER_UNIT="${PROVIDER_UNIT:-}"
 
-chmod +x "$ROOT/scripts/host-collector.sh"
+chmod +x "$ROOT/scripts/host-collector.sh" "$ROOT/scripts/restart-gads-provider.sh"
 
 UNIT=$(cat <<EOF
 [Unit]
@@ -21,6 +23,8 @@ WorkingDirectory=$ROOT
 Environment=WATCH_URL=$WATCH_URL
 Environment=COLLECTOR_TOKEN=$COLLECTOR_TOKEN
 Environment=INTERVAL=$INTERVAL
+Environment=ALLOW_PROVIDER_RESTART=$ALLOW_PROVIDER_RESTART
+Environment=PROVIDER_UNIT=$PROVIDER_UNIT
 ExecStart=$ROOT/scripts/host-collector.sh
 Restart=on-failure
 RestartSec=5

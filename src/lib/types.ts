@@ -28,6 +28,9 @@ export type Settings = {
   pollSeconds: number;
   downGraceSeconds: number;
   providerSettleSeconds: number;
+  providerRestartEnabled: boolean;
+  providerRestartAfterSeconds: number;
+  providerRestartCooldownSeconds: number;
   recoverNotify: boolean;
   ntfyServer: string;
   ntfyTopic: string;
@@ -70,6 +73,13 @@ export type UsbDevice = {
   serial?: string;
 };
 
+export type ProviderControl = {
+  allowed: boolean;
+  kind: "launchd" | "systemd" | "none";
+  unit: string;
+  nickname?: string;
+};
+
 export type HostSnapshot = {
   receivedAt: number;
   hostname: string;
@@ -77,6 +87,7 @@ export type HostSnapshot = {
   usb: UsbDevice[];
   ios?: string[];
   dmesg: string[];
+  providerControl?: ProviderControl;
 };
 
 export type GadsDevice = {

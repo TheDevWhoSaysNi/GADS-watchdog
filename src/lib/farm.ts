@@ -7,12 +7,15 @@ import { GadsClient } from "./gads";
 import {
   loadEvents,
   loadHostSnapshot,
+  loadHostSnapshots,
   loadMemory,
   loadProviderQuiet,
+  loadProviderRestart,
   loadSettings,
   saveEvents,
   saveMemory,
   saveProviderQuiet,
+  saveProviderRestart,
 } from "./store";
 import {
   providerIsQuiet,
@@ -20,6 +23,14 @@ import {
   suppressAlertWhileQuiet,
   updateProviderQuiet,
 } from "./provider-quiet";
+import {
+  collectorCanRestart,
+  findCollectorForProvider,
+  markRestartRequested,
+  restartKey,
+  shouldHoldDownAlert,
+  shouldRequestRestart,
+} from "./provider-restart";
 import type {
   ClassifiedDevice,
   DeviceMemory,
@@ -114,6 +125,39 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
   const quiet = updateProviderQuiet(loadProviderQuiet(), classified, now, settleMs);
   saveProviderQuiet(quiet);
 
+  const freshHosts = loadHostSnapshots().filter(
+    (item) => now - item.receivedAt < 120_000,
+  );
+  const restartAfterMs = (settings.providerRestartAfterSeconds || 180) * 1000;
+  const restartCooldownMs = (settings.providerRestartCooldownSeconds || 900) * 1000;
+  let restarts = loadProviderRestart();
+  if (settings.providerRestartEnabled) {
+    const groups = new Map<string, ClassifiedDevice[]>();
+    for (const device of classified) {
+      const key = restartKey(device);
+      const list = groups.get(key) ?? [];
+      list.push(device);
+      groups.set(key, list);
+    }
+    for (const [key, group] of groups) {
+      const hostForProvider = findCollectorForProvider(freshHosts, key);
+      if (
+        shouldRequestRestart({
+          enabled: true,
+          canRestart: collectorCanRestart(hostForProvider),
+          quiet: providerIsQuiet(quiet, key, now, settleMs),
+          devices: group,
+          state: restarts[key],
+          afterMs: restartAfterMs,
+          now,
+        })
+      ) {
+        restarts = markRestartRequested(restarts, key, now, restartCooldownMs);
+      }
+    }
+    saveProviderRestart(restarts);
+  }
+
   const newEvents: FarmEvent[] = [];
   for (const device of classified) {
     const prev = memory[device.udid];
@@ -125,7 +169,26 @@ async function refreshFarm(settings: Settings): Promise<FarmSnapshot> {
     device.incidentAlerted = nextMem.incidentAlerted;
 
     const silenced = providerIsQuiet(quiet, providerKey(device), now, settleMs);
-    const event = maybeBuildEvent(settings, prev, device, nextMem, now, silenced);
+    const hostForProvider = findCollectorForProvider(freshHosts, restartKey(device));
+    const holdForRestart = shouldHoldDownAlert({
+      enabled: settings.providerRestartEnabled,
+      canRestart: collectorCanRestart(hostForProvider),
+      cause: device.cause,
+      downSince: nextMem.downSince,
+      state: restarts[restartKey(device)],
+      settleMs,
+      afterMs: restartAfterMs,
+      now,
+    });
+    const event = maybeBuildEvent(
+      settings,
+      prev,
+      device,
+      nextMem,
+      now,
+      silenced,
+      holdForRestart,
+    );
     if (event) newEvents.push(event);
   }
 
@@ -212,6 +275,7 @@ function maybeBuildEvent(
   next: DeviceMemory,
   now: number,
   quiet: boolean,
+  holdForRestart = false,
 ): FarmEvent | null {
   const wasOnline = !prev || prev.lastCause === "online";
   const isOnline = device.cause === "online";
@@ -240,6 +304,7 @@ function maybeBuildEvent(
 
   if (!isOnline && next.downSince && !next.incidentAlerted) {
     const elapsed = now - next.downSince;
+    if (holdForRestart) return null;
     if (elapsed >= settings.downGraceSeconds * 1000) {
       next.incidentAlerted = true;
       const severity = severityForCause(device.cause);

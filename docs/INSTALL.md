@@ -185,8 +185,11 @@ If the collector is on another machine, `WATCH_URL` is the Watchdog URL on the L
 chmod +x scripts/*.sh
 WATCH_URL=http://<hub-lan-ip>:48080 \
 COLLECTOR_TOKEN='paste-token' \
+ALLOW_PROVIDER_RESTART=1 \
 ./scripts/install-collector-macos.sh
 ```
+
+`ALLOW_PROVIDER_RESTART=1` is optional. Only set it if this host runs the official GADS provider service (`com.gads.provider` on macOS, or `gads-provider.service` on Linux) and you want Watchdog to kickstart that service once when a phone stays connected-but-down for 3 minutes. The collector user needs passwordless sudo for that one restart command. Leave it blank to only report status.
 
 Needs `python3`. `idevice_id` (libimobiledevice) is how iPhones are listed. `adb` is used if you also have Androids. USB serials come from `system_profiler` on macOS and `/sys/bus/usb` on Linux.
 

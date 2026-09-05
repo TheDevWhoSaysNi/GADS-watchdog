@@ -1,8 +1,27 @@
-import { saveHostSnapshot } from "@/lib/store";
-import { loadSettings, tokenFromAuthHeader } from "@/lib/store";
-import type { HostSnapshot } from "@/lib/types";
+import {
+  loadHostSnapshots,
+  loadProviderRestart,
+  loadSettings,
+  saveHostSnapshot,
+  saveProviderRestart,
+  tokenFromAuthHeader,
+} from "@/lib/store";
+import { markRestartDelivered, pendingRestartForHost } from "@/lib/provider-restart";
+import type { HostSnapshot, ProviderControl } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+function readProviderControl(raw: unknown): ProviderControl | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const value = raw as Partial<ProviderControl>;
+  const kind = value.kind === "launchd" || value.kind === "systemd" ? value.kind : "none";
+  return {
+    allowed: Boolean(value.allowed),
+    kind,
+    unit: typeof value.unit === "string" ? value.unit : "",
+    nickname: typeof value.nickname === "string" ? value.nickname : "",
+  };
+}
 
 export async function POST(request: Request) {
   const settings = loadSettings();
@@ -19,9 +38,30 @@ export async function POST(request: Request) {
     usb: Array.isArray(body.usb) ? body.usb : [],
     ios: Array.isArray(body.ios) ? body.ios : [],
     dmesg: Array.isArray(body.dmesg) ? body.dmesg : [],
+    providerControl: readProviderControl(body.providerControl),
   };
   saveHostSnapshot(snapshot);
-  return Response.json({ ok: true, receivedAt: snapshot.receivedAt });
+
+  let restartProvider = false;
+  if (settings.providerRestartEnabled) {
+    const restarts = loadProviderRestart();
+    const provider = pendingRestartForHost(
+      loadHostSnapshots(),
+      restarts,
+      snapshot.hostname,
+      Date.now(),
+    );
+    if (provider) {
+      saveProviderRestart(markRestartDelivered(restarts, provider, Date.now()));
+      restartProvider = true;
+    }
+  }
+
+  return Response.json({
+    ok: true,
+    receivedAt: snapshot.receivedAt,
+    restartProvider,
+  });
 }
 
 export async function GET() {

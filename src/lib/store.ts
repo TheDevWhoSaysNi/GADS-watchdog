@@ -9,6 +9,7 @@ import type {
   Settings,
 } from "./types";
 import type { ProviderQuietMap } from "./provider-quiet";
+import type { ProviderRestartMap } from "./provider-restart";
 
 const DATA_DIR = join(process.cwd(), "data");
 
@@ -47,8 +48,11 @@ export function defaultSettings(): Settings {
     workspaceId: "",
     pollSeconds: 8,
     downGraceSeconds: 60,
-    providerSettleSeconds: 60,
-    recoverNotify: true,
+  providerSettleSeconds: 60,
+  providerRestartEnabled: false,
+  providerRestartAfterSeconds: 180,
+  providerRestartCooldownSeconds: 900,
+  recoverNotify: true,
     ntfyServer: "https://ntfy.sh",
     ntfyTopic: "",
     ntfyToken: "",
@@ -87,6 +91,14 @@ export function loadSettingsMeta(): { settings: Settings; fromEnv: (keyof Settin
     300,
     Math.max(15, loaded.settings.providerSettleSeconds || 60),
   );
+  loaded.settings.providerRestartAfterSeconds = Math.min(
+    600,
+    Math.max(60, loaded.settings.providerRestartAfterSeconds || 180),
+  );
+  loaded.settings.providerRestartCooldownSeconds = Math.min(
+    3600,
+    Math.max(300, loaded.settings.providerRestartCooldownSeconds || 900),
+  );
   return loaded;
 }
 
@@ -123,6 +135,14 @@ export function loadProviderQuiet(): ProviderQuietMap {
 
 export function saveProviderQuiet(quiet: ProviderQuietMap) {
   writeJson("provider-quiet.json", quiet);
+}
+
+export function loadProviderRestart(): ProviderRestartMap {
+  return readJson("provider-restart.json", {});
+}
+
+export function saveProviderRestart(restarts: ProviderRestartMap) {
+  writeJson("provider-restart.json", restarts);
 }
 
 const HOST_SNAPSHOT_STALE_MS = 120_000;

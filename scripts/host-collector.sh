@@ -9,12 +9,13 @@ WATCH_URL="${WATCH_URL:-http://127.0.0.1:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN to the token from GADS Watchdog Settings}"
 INTERVAL="${INTERVAL:-15}"
 ONCE="${ONCE:-0}"
+SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 
 collect_once() {
-  python3 - "$WATCH_URL" "$COLLECTOR_TOKEN" <<'PY'
+  python3 - "$WATCH_URL" "$COLLECTOR_TOKEN" "$SCRIPTS" <<'PY'
 import json, os, re, socket, subprocess, sys, urllib.error, urllib.request
 
-watch_url, token = sys.argv[1], sys.argv[2]
+watch_url, token, scripts_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 
 
 os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:" + os.environ.get("PATH", "")
@@ -158,12 +159,48 @@ if sys.platform != "darwin":
             dmesg.append(line[-240:])
     dmesg = dmesg[-20:]
 
+def provider_nickname():
+    for line in run(["ps", "-ax", "-o", "args="], timeout=5).splitlines():
+        if "gads" in line.lower() and "provider" in line and "--nickname" in line:
+            parts = line.split()
+            if "--nickname" in parts:
+                idx = parts.index("--nickname")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+    return os.environ.get("GADS_PROVIDER_NICKNAME", "").strip()
+
+
+def provider_control():
+    allowed = os.environ.get("ALLOW_PROVIDER_RESTART", "").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+    unit = os.environ.get("PROVIDER_UNIT", "").strip()
+    kind = "none"
+    if sys.platform == "darwin":
+        default = "com.gads.provider"
+        if unit or os.path.exists("/Library/LaunchDaemons/com.gads.provider.plist"):
+            kind = "launchd"
+            unit = unit or default
+    elif run(["systemctl", "cat", unit or "gads-provider.service"], timeout=4) or run(
+        ["systemctl", "--user", "cat", unit or "gads-provider.service"], timeout=4
+    ):
+        kind = "systemd"
+        unit = unit or "gads-provider.service"
+    return {
+        "allowed": allowed,
+        "kind": kind,
+        "unit": unit,
+        "nickname": provider_nickname(),
+    }
+
+
 payload = {
     "hostname": socket.gethostname(),
     "adb": adb,
     "usb": usb,
     "ios": ios,
     "dmesg": dmesg,
+    "providerControl": provider_control(),
 }
 
 req = urllib.request.Request(
@@ -177,7 +214,18 @@ req = urllib.request.Request(
 )
 try:
     with urllib.request.urlopen(req, timeout=10) as resp:
-        print(resp.read().decode(), flush=True)
+        raw = resp.read().decode()
+        print(raw, flush=True)
+        try:
+            reply = json.loads(raw)
+        except json.JSONDecodeError:
+            reply = {}
+        if reply.get("restartProvider"):
+            script = os.path.join(scripts_dir, "restart-gads-provider.sh")
+            if os.path.isfile(script):
+                print(run(["bash", script], timeout=30) or "provider restart requested", flush=True)
+            else:
+                print("restart-gads-provider.sh missing", file=sys.stderr)
 except urllib.error.URLError as exc:
     print(f"collector post failed: {exc}", file=sys.stderr)
     sys.exit(1)

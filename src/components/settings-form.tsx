@@ -193,7 +193,25 @@ export function SettingsForm() {
               onChange={(value) => patch("providerSettleSeconds", Number(value))}
               locked={locked("providerSettleSeconds")}
             />
+            <Field
+              label="Auto-restart wait (seconds)"
+              hint="How long a connected-but-down phone must stay down before one provider restart. Default 180 so 1–2 minute flaps self-heal."
+              type="number"
+              value={String(form.providerRestartAfterSeconds ?? 180)}
+              onChange={(value) => patch("providerRestartAfterSeconds", Number(value))}
+              locked={locked("providerRestartAfterSeconds")}
+            />
           </div>
+          <Row
+            label="Auto-restart provider"
+            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One attempt, then we page if it stays down."
+          >
+            <Switch
+              checked={Boolean(form.providerRestartEnabled)}
+              onCheckedChange={(checked) => patch("providerRestartEnabled", checked)}
+              disabled={locked("providerRestartEnabled")}
+            />
+          </Row>
           <Row label="Notify on recovery">
             <Switch
               checked={form.recoverNotify}
@@ -328,7 +346,8 @@ export function SettingsForm() {
           <pre className="overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">
 {`WATCH_URL=http://127.0.0.1:48080 \\
 COLLECTOR_TOKEN=${form.collectorToken || "YOUR_TOKEN"} \\
-./scripts/host-collector.sh`}
+ALLOW_PROVIDER_RESTART=1 \\
+./scripts/install-collector-macos.sh`}
           </pre>
         </CardContent>
       </Card>

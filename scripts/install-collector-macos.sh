@@ -8,8 +8,10 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 WATCH_URL="${WATCH_URL:?Set WATCH_URL to the hub Watchdog, e.g. http://HUB_LAN_IP:48080}"
 COLLECTOR_TOKEN="${COLLECTOR_TOKEN:?Set COLLECTOR_TOKEN from the hub Watchdog settings}"
 INTERVAL="${INTERVAL:-15}"
+ALLOW_PROVIDER_RESTART="${ALLOW_PROVIDER_RESTART:-}"
+PROVIDER_UNIT="${PROVIDER_UNIT:-}"
 
-chmod +x "$ROOT/scripts/host-collector.sh"
+chmod +x "$ROOT/scripts/host-collector.sh" "$ROOT/scripts/restart-gads-provider.sh"
 mkdir -p "$HOME/Library/LaunchAgents" "$ROOT/data"
 
 cat > "$PLIST" <<EOF
@@ -33,6 +35,10 @@ cat > "$PLIST" <<EOF
     <string>$COLLECTOR_TOKEN</string>
     <key>INTERVAL</key>
     <string>$INTERVAL</string>
+    <key>ALLOW_PROVIDER_RESTART</key>
+    <string>$ALLOW_PROVIDER_RESTART</string>
+    <key>PROVIDER_UNIT</key>
+    <string>$PROVIDER_UNIT</string>
     <key>PATH</key>
     <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
   </dict>

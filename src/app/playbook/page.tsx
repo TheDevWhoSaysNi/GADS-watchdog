@@ -73,6 +73,13 @@ export default function PlaybookPage() {
                 stopped refreshing. Restart the provider, not the phone.
               </li>
             </ul>
+            <p>
+              If you opt in, Watchdog can kickstart the GADS provider service once
+              when a phone stays connected but not live for three minutes. Short
+              flaps are ignored. If that restart brings it back, there is no page.
+              If it is still down after the settle window, you get the alert.
+              USB unplugs never trigger a restart.
+            </p>
           </CardContent>
         </Card>
 

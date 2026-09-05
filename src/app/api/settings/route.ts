@@ -38,6 +38,19 @@ export async function POST(request: Request) {
       15,
       300,
     ),
+    providerRestartEnabled: Boolean(
+      body.providerRestartEnabled ?? current.providerRestartEnabled,
+    ),
+    providerRestartAfterSeconds: clamp(
+      body.providerRestartAfterSeconds ?? current.providerRestartAfterSeconds ?? 180,
+      60,
+      600,
+    ),
+    providerRestartCooldownSeconds: clamp(
+      body.providerRestartCooldownSeconds ?? current.providerRestartCooldownSeconds ?? 900,
+      300,
+      3600,
+    ),
   };
   saveSettings(next);
   const loaded = loadSettingsMeta();
