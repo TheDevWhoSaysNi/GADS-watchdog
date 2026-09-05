@@ -40,7 +40,7 @@ cat > "$PLIST" <<EOF
     <key>PROVIDER_UNIT</key>
     <string>$PROVIDER_UNIT</string>
     <key>PATH</key>
-    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/sbin:/sbin:/usr/bin:/bin</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>

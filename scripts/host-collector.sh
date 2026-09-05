@@ -18,7 +18,7 @@ import json, os, re, socket, subprocess, sys, time, urllib.error, urllib.request
 watch_url, token, scripts_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 
 
-os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:" + os.environ.get("PATH", "")
+os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:/usr/sbin:/sbin:/usr/bin:/bin:" + os.environ.get("PATH", "")
 
 
 def run(cmd, timeout=None):
@@ -225,7 +225,9 @@ def host_vitals():
                 match = re.search(r"page size of (\d+)", line)
                 if match:
                     page = int(match.group(1))
-                if line.startswith("Pages free") or line.startswith("Pages speculative"):
+                if line.startswith(
+                    ("Pages free", "Pages speculative", "Pages inactive", "Pages purgeable")
+                ):
                     digits = re.search(r"(\d+)", line)
                     if digits:
                         avail += int(digits.group(1)) * page
