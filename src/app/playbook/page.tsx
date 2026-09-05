@@ -63,6 +63,12 @@ export default function PlaybookPage() {
                 host can see the phone; GADS has not reached live.
               </li>
               <li>
+                <strong className="text-zinc-100">Needs a hands-on fix.</strong> The
+                iPhone is still plugged in — GADS can see the UDID — but pairing or
+                setup is failing (often Lockdown error 3). Unlock it, tap Trust, or
+                hard-restart the phone.
+              </li>
+              <li>
                 <strong className="text-zinc-100">Stale heartbeat.</strong> Provider
                 stopped refreshing. Restart the provider, not the phone.
               </li>

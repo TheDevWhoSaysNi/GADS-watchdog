@@ -243,6 +243,10 @@ function maybeBuildEvent(
     if (elapsed >= settings.downGraceSeconds * 1000) {
       next.incidentAlerted = true;
       const severity = severityForCause(device.cause);
+      const title =
+        device.cause === "ios_needs_attention"
+          ? `${device.name} needs a hands-on fix`
+          : `${device.name} is down`;
       return {
         id: randomUUID(),
         at: now,
@@ -250,7 +254,7 @@ function maybeBuildEvent(
         name: device.name,
         severity,
         cause: device.cause,
-        title: `${device.name} is down`,
+        title,
         detail: device.causeDetail,
         notified: false,
       };
@@ -258,14 +262,20 @@ function maybeBuildEvent(
   }
 
   if (!isOnline && prev && !wasOnline && prev.lastCause !== device.cause) {
+    const correctUnplug =
+      prev.incidentAlerted &&
+      prev.lastCause === "usb_disconnect" &&
+      device.cause === "ios_needs_attention";
     return {
       id: randomUUID(),
       at: now,
       udid: device.udid,
       name: device.name,
-      severity: "info",
+      severity: correctUnplug ? "warning" : "info",
       cause: device.cause,
-      title: `${device.name} cause changed to ${device.causeLabel}`,
+      title: correctUnplug
+        ? `${device.name} needs a hands-on fix`
+        : `${device.name} cause changed to ${device.causeLabel}`,
       detail: device.causeDetail,
       notified: false,
     };
@@ -329,7 +339,9 @@ function summarize(devices: ClassifiedDevice[]): FarmSnapshot["stats"] {
     down: devices.filter((d) => d.cause !== "online").length,
     inUse: devices.filter((d) => d.inUse).length,
     cableSuspects: devices.filter((d) => isCableSuspect(d.cause)).length,
-    setupStuck: devices.filter((d) => d.cause === "provider_setup").length,
+    setupStuck: devices.filter(
+      (d) => d.cause === "provider_setup" || d.cause === "ios_needs_attention",
+    ).length,
   };
 }
 

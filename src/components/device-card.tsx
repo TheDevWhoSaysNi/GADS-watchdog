@@ -2,6 +2,7 @@
 
 import {
   Cable,
+  Hand,
   PlugZap,
   ShieldAlert,
   Smartphone,
@@ -20,6 +21,7 @@ const ICONS: Partial<Record<DropCause, typeof Smartphone>> = {
   charge_only_cable: PlugZap,
   adb_unauthorized: ShieldAlert,
   provider_setup: Wrench,
+  ios_needs_attention: Hand,
 };
 
 function tone(cause: DropCause): string {
@@ -75,6 +77,18 @@ export function DeviceCard({
                 : device.usbPresent
                   ? "present"
                   : "missing"
+            }
+          />
+          <Signal
+            label="iOS"
+            value={
+              device.iosPresent === null
+                ? "no collector"
+                : device.iosPresent
+                  ? "listed"
+                  : device.connected
+                    ? "GADS sees USB"
+                    : "missing"
             }
           />
           <Signal label="Provider" value={device.provider || "—"} />

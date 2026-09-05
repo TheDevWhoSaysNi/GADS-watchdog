@@ -69,5 +69,15 @@ describe("alert channels", () => {
       alertCopy(event({ severity: "warning", udid: "FARM", name: "8 phones" })).title,
       "Farm: 8 phones",
     );
+    assert.equal(
+      alertCopy(
+        event({
+          severity: "warning",
+          cause: "ios_needs_attention",
+          name: "Igor 3",
+        }),
+      ).title,
+      "Needs hands-on: Igor 3",
+    );
   });
 });

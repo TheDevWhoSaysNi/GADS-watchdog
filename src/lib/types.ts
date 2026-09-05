@@ -9,6 +9,7 @@ export type DropCause =
   | "adb_unauthorized"
   | "charge_only_cable"
   | "provider_setup"
+  | "ios_needs_attention"
   | "stale_heartbeat"
   | "hub_unreachable"
   | "ios_disconnected"

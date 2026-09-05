@@ -17,6 +17,7 @@ export function providerKey(device: { provider?: string; host?: string }): strin
 export function isSoftwareBounceCause(cause: DropCause): boolean {
   return (
     cause === "provider_setup" ||
+    cause === "ios_needs_attention" ||
     cause === "stale_heartbeat" ||
     cause === "unknown_down" ||
     cause === "ios_disconnected"

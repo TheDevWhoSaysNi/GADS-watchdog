@@ -71,7 +71,20 @@ def ios_from_goios():
     return found
 
 
+def ios_from_ioreg():
+    if sys.platform != "darwin":
+        return []
+    raw = run(["ioreg", "-p", "IOUSB", "-l", "-w", "0"], timeout=8)
+    found = []
+    for match in re.finditer(r'"USB Serial Number"\s*=\s*"([^"]+)"', raw):
+        serial = match.group(1).strip()
+        if re.fullmatch(r"[0-9A-Fa-f-]{16,}", serial):
+            found.append(serial)
+    return found
+
+
 # go-ios is the reliable listing on large Mac farms. libimobiledevice can hang.
+# Lockdown-failed phones can vanish from `ios list` while still on USB; ioreg still sees them.
 ios = ios_from_goios()
 if not ios:
     ios = [
@@ -79,6 +92,7 @@ if not ios:
         for line in run(["idevice_id", "-l"], timeout=8).splitlines()
         if line.strip() and not line.startswith("{")
     ]
+ios = list(dict.fromkeys([*ios, *ios_from_ioreg()]))
 
 usb = []
 root = "/sys/bus/usb/devices"

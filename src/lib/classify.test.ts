@@ -142,7 +142,7 @@ describe("classifyCause", () => {
     );
   });
 
-  it("does not call USB-visible phones setup-stuck when GADS never sent runtime state", () => {
+  it("does not call a collector-visible iPhone unplugged when GADS has no runtime", () => {
     const snap = host({
       adb: [],
       usb: [],
@@ -161,7 +161,7 @@ describe("classifyCause", () => {
         true,
         now,
       ),
-      "unknown_down",
+      "ios_needs_attention",
     );
   });
 
@@ -184,7 +184,45 @@ describe("classifyCause", () => {
         true,
         now,
       ),
-      "provider_setup",
+      "ios_needs_attention",
+    );
+  });
+
+  it("does not call GADS-connected iPhones unplugged when ios list misses them", () => {
+    const snap = host({ adb: [], usb: [], ios: [] });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: true,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "ios_needs_attention",
+    );
+  });
+
+  it("still calls iOS unplugged when GADS and the collector both lost the phone", () => {
+    const snap = host({ adb: [], usb: [], ios: [] });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "usb_disconnect",
     );
   });
 });

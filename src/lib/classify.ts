@@ -43,6 +43,11 @@ export const CAUSE_COPY: Record<
     detail:
       "The provider host can still see this phone (ADB or iOS pairing), but GADS never reached live. Check provider logs for GADS-stream, WebDriverAgent, or permission failures.",
   },
+  ios_needs_attention: {
+    label: "Needs a hands-on fix",
+    detail:
+      "The phone is still on USB — GADS can see the UDID — but setup is failing (often Lockdown pairing error 3). Unlock it, tap Trust if asked, or hard-restart the iPhone. A reboot usually clears a wedged pairing session.",
+  },
   stale_heartbeat: {
     label: "Stale provider heartbeat",
     detail:
@@ -138,24 +143,27 @@ export function classifyCause(
 
   if (isGadsLive(device, now)) return "online";
 
+  // GADS `connected` means usbmux/ADB still sees the phone. That is never an unplug,
+  // even when go-ios `ios list` omits a device that failed Lockdown pairing.
+  if (os === "ios" && (device.connected || iosListed || usbPresent === true)) {
+    return "ios_needs_attention";
+  }
+
   if (snapshot) {
     if (os === "ios") {
-      if (usbPresent === false && !iosListed) return "usb_disconnect";
-      if (
-        hasHubRuntime(device) &&
-        adbStatus === "absent" &&
-        (usbPresent || iosListed)
-      ) {
-        return "provider_setup";
+      if (!device.connected && usbPresent === false && !iosListed) {
+        return "usb_disconnect";
       }
     } else {
-      if (usbPresent === false && adbStatus === "absent") return "usb_disconnect";
+      if (usbPresent === false && adbStatus === "absent" && !device.connected) {
+        return "usb_disconnect";
+      }
       if (adbStatus === "offline") return "adb_offline";
       if (adbStatus === "unauthorized") return "adb_unauthorized";
       if (usbPresent === true && adbStatus === "absent") return "charge_only_cable";
       if (
         hasHubRuntime(device) &&
-        adbStatus === "device" &&
+        (adbStatus === "device" || device.connected) &&
         device.providerState !== "live"
       ) {
         return "provider_setup";
