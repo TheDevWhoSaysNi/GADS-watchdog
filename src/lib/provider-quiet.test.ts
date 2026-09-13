@@ -72,16 +72,34 @@ describe("provider quiet window", () => {
       phone("c", "provider_setup"),
     ];
     const live = bounce.map((device) => ({ ...device, cause: "online" as const }));
+    const started = updateProviderQuiet({}, bounce, now, 60_000, 0);
+    assert.equal(providerIsQuiet(started, "mini-04", now, 60_000, 0), true);
+
+    const recovering = updateProviderQuiet(started, live, now + 20_000, 60_000, 0);
+    assert.equal(providerIsQuiet(recovering, "mini-04", now + 20_000, 60_000, 0), true);
+    assert.equal(providerIsQuiet(recovering, "mini-04", now + 79_000, 60_000, 0), true);
+    assert.equal(providerIsQuiet(recovering, "mini-04", now + 81_000, 60_000, 0), false);
+
+    const expired = updateProviderQuiet(recovering, live, now + 81_000, 60_000, 0);
+    assert.equal(providerIsQuiet(expired, "mini-04", now + 81_000, 60_000, 0), false);
+  });
+
+  it("keeps a bounce quiet long enough for one slow phone to come back", () => {
+    const bounce = [
+      phone("a", "provider_setup"),
+      phone("b", "provider_setup"),
+      phone("c", "provider_setup"),
+    ];
+    const mostlyLive = [
+      phone("a", "online"),
+      phone("b", "online"),
+      phone("c", "ios_needs_attention"),
+    ];
     const started = updateProviderQuiet({}, bounce, now, 60_000);
-    assert.equal(providerIsQuiet(started, "mini-04", now, 60_000), true);
-
-    const recovering = updateProviderQuiet(started, live, now + 20_000, 60_000);
-    assert.equal(providerIsQuiet(recovering, "mini-04", now + 20_000, 60_000), true);
-    assert.equal(providerIsQuiet(recovering, "mini-04", now + 79_000, 60_000), true);
-    assert.equal(providerIsQuiet(recovering, "mini-04", now + 81_000, 60_000), false);
-
-    const expired = updateProviderQuiet(recovering, live, now + 81_000, 60_000);
-    assert.equal(providerIsQuiet(expired, "mini-04", now + 81_000, 60_000), false);
+    const afterCluster = updateProviderQuiet(started, mostlyLive, now + 90_000, 60_000);
+    assert.equal(providerIsQuiet(afterCluster, "mini-04", now + 90_000, 60_000), true);
+    assert.equal(providerIsQuiet(afterCluster, "mini-04", now + 240_000, 60_000), true);
+    assert.equal(providerIsQuiet(afterCluster, "mini-04", now + 301_000, 60_000), false);
   });
 
   it("re-opens quiet if another bounce starts during settle", () => {
@@ -92,10 +110,11 @@ describe("provider quiet window", () => {
     ];
     const live = bounce.map((device) => ({ ...device, cause: "online" as const }));
     const afterLive = updateProviderQuiet(
-      updateProviderQuiet({}, bounce, now, 60_000),
+      updateProviderQuiet({}, bounce, now, 60_000, 0),
       live,
       now + 5_000,
       60_000,
+      0,
     );
     const again = updateProviderQuiet(afterLive, bounce, now + 20_000, 60_000);
     assert.equal(again["mini-04"]?.liveSince, null);

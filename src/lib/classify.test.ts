@@ -207,8 +207,39 @@ describe("classifyCause", () => {
     );
   });
 
-  it("still calls iOS unplugged when GADS and the collector both lost the phone", () => {
+  it("does not call iOS unplugged when the collector has no USB serials", () => {
     const snap = host({ adb: [], usb: [], ios: [] });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "ios_disconnected",
+    );
+  });
+
+  it("still calls iOS unplugged when USB serials exist and this phone vanished", () => {
+    const snap = host({
+      adb: [],
+      usb: [
+        {
+          bus: "1",
+          sysName: "1-2",
+          vendorId: "05ac",
+          productId: "12a8",
+          serial: "OTHERPHONE",
+        },
+      ],
+      ios: [],
+    });
     assert.equal(
       classifyCause(
         device({

@@ -213,7 +213,54 @@ describe("provider restart alerts", () => {
         afterMs,
         now: now + settleMs + 1,
       }),
+      true,
+    );
+    assert.equal(
+      shouldHoldDownAlert({
+        enabled: true,
+        canRestart: true,
+        cause: "ios_needs_attention",
+        downSince: now - afterMs,
+        state: delivered,
+        settleMs,
+        afterMs,
+        now: now + cooldownMs + 1,
+      }),
       false,
+    );
+  });
+
+  it("does not treat a previous hour's restart as already settled", () => {
+    const stale = markRestartDelivered(
+      markRestartRequested({}, "p", now - cooldownMs - 60_000, cooldownMs),
+      "p",
+      now - cooldownMs - 50_000,
+    ).p;
+    assert.equal(
+      shouldHoldDownAlert({
+        enabled: true,
+        canRestart: true,
+        cause: "ios_needs_attention",
+        downSince: now - 90_000,
+        state: stale,
+        settleMs,
+        afterMs,
+        now,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldHoldDownAlert({
+        enabled: true,
+        canRestart: true,
+        cause: "ios_disconnected",
+        downSince: now - 90_000,
+        state: stale,
+        settleMs,
+        afterMs,
+        now,
+      }),
+      true,
     );
   });
 

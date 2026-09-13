@@ -165,6 +165,7 @@ async function refreshFarm(
         })
       ) {
         restarts = markRestartRequested(restarts, key, now, restartCooldownMs);
+        console.info("[watchdog] provider restart requested", key);
       }
     }
     saveProviderRestart(restarts);
@@ -345,20 +346,14 @@ function maybeBuildEvent(
   }
 
   if (!isOnline && prev && !wasOnline && prev.lastCause !== device.cause) {
-    const correctUnplug =
-      prev.incidentAlerted &&
-      prev.lastCause === "usb_disconnect" &&
-      device.cause === "ios_needs_attention";
     return {
       id: randomUUID(),
       at: now,
       udid: device.udid,
       name: device.name,
-      severity: correctUnplug ? "warning" : "info",
+      severity: "info",
       cause: device.cause,
-      title: correctUnplug
-        ? `${device.name} needs a hands-on fix`
-        : `${device.name} cause changed to ${device.causeLabel}`,
+      title: `${device.name} cause changed to ${device.causeLabel}`,
       detail: device.causeDetail,
       notified: false,
     };

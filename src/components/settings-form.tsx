@@ -210,7 +210,7 @@ export function SettingsForm() {
             />
             <Field
               label="Provider settle (seconds)"
-              hint="Quiet window after a provider bounce. Hourly restarts send nothing until this minute after phones are live again."
+              hint="After a provider bounce, wait this long once phones are live. One slow phone also stays quiet for 5 minutes from bounce start."
               type="number"
               value={String(form.providerSettleSeconds ?? 60)}
               onChange={(value) => patch("providerSettleSeconds", Number(value))}
@@ -218,7 +218,7 @@ export function SettingsForm() {
             />
             <Field
               label="Auto-restart wait (seconds)"
-              hint="How long a connected-but-down phone must stay down before one provider restart. Default 180 so 1–2 minute flaps self-heal."
+              hint="How long a connected-but-down phone must stay down before one provider restart. Default 180. If the restart brings it back, there is no Telegram page."
               type="number"
               value={String(form.providerRestartAfterSeconds ?? 180)}
               onChange={(value) => patch("providerRestartAfterSeconds", Number(value))}
@@ -227,7 +227,7 @@ export function SettingsForm() {
           </div>
           <Row
             label="Auto-restart provider"
-            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One attempt, then we page if it stays down."
+            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One attempt; pages only if the phone is still down after the 15-minute cooldown."
           >
             <Switch
               checked={Boolean(form.providerRestartEnabled)}

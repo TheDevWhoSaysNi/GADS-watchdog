@@ -76,9 +76,11 @@ export default function PlaybookPage() {
             <p>
               If you opt in, Watchdog can kickstart the GADS provider service once
               when a phone stays connected but not live for three minutes. Short
-              flaps are ignored. If that restart brings it back, there is no page.
-              If it is still down after the settle window, you get the alert.
-              USB unplugs never trigger a restart.
+              flaps and hourly provider bounces stay silent, including one slow
+              phone that comes back a few minutes after the rest. If that restart
+              brings it back, there is no page. If it is still down after the
+              15-minute cooldown, you get the alert. USB unplugs never trigger a
+              restart.
             </p>
             <p>
               A daily health check goes out at 4:00 on the Watchdog host clock:

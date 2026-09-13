@@ -152,7 +152,11 @@ export function classifyCause(
   if (snapshot) {
     if (os === "ios") {
       if (!device.connected && usbPresent === false && !iosListed) {
-        return "usb_disconnect";
+        // Mac collectors often skip system_profiler (usb serials empty) and list
+        // phones via go-ios/ioreg. Missing from that list is not a proven unplug —
+        // Lockdown wedges hide serials while the cable is still seated.
+        const usbSerials = snapshot.usb.some((item) => Boolean(item.serial?.trim()));
+        return usbSerials ? "usb_disconnect" : "ios_disconnected";
       }
     } else {
       if (usbPresent === false && adbStatus === "absent" && !device.connected) {

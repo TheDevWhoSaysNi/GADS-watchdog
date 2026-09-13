@@ -14,7 +14,7 @@ Humans: [docs/INSTALL.md](docs/INSTALL.md). This file is the install contract fo
 - Never print `.env`, `data/settings.json`, Mongo dumps, bot tokens, collector tokens, or device phone numbers.
 - After `.env` edits: restart the service. After TypeScript changes on a live box: `npm run build` then restart.
 - Do not fork or vendor GADS / WDA into this repo.
-- Do not set `WATCHDOG_DOWN_GRACE_SECONDS` below **15**. Hourly provider restarts are muted until that provider is live plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60).
+- Do not set `WATCHDOG_DOWN_GRACE_SECONDS` below **15**. Hourly provider restarts are muted until that provider is live plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for five minutes from bounce start so a single slow phone does not page.
 - Do not call a drop “USB unplugged” unless a collector on **that** USB host is posting.
 - From **Windows PowerShell SSH**: do not double-quote remotes that contain `$HOME`, `` `id -u` ``, or `timeout=20`. PowerShell expands those. Use single-quoted remote scripts, or pipe a `.py` file over stdin. Never clone to a path like `C:UsersRyan` on Linux.
 
@@ -104,8 +104,8 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 
 ## Phase 4 — tune
 
-- Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer.
-- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then page if the phone is still down after settle. Never restart for USB unplug.
+- Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer. Quiet also lasts five minutes from bounce start so a straggler does not page.
+- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then page only if the phone is still down after the **15-minute** cooldown. Never restart for USB unplug.
 - Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.

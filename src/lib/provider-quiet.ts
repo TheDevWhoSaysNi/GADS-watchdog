@@ -9,6 +9,8 @@ export type ProviderQuietMap = Record<string, ProviderQuietState>;
 
 const RESTART_MIN_DOWN = 3;
 const RESTART_FRACTION = 0.35;
+/** One slow phone after an hourly bounce should not page. Typical straggler is ~3.5 min. */
+export const PROVIDER_STRAGGLER_MS = 300_000;
 
 export function providerKey(device: { provider?: string; host?: string }): string {
   return (device.provider || device.host || "unknown").trim() || "unknown";
@@ -37,6 +39,7 @@ export function updateProviderQuiet(
   devices: ClassifiedDevice[],
   now: number,
   settleMs: number,
+  stragglerMs = PROVIDER_STRAGGLER_MS,
 ): ProviderQuietMap {
   const groups = new Map<string, ClassifiedDevice[]>();
   for (const device of devices) {
@@ -59,7 +62,8 @@ export function updateProviderQuiet(
     }
     if (!existing) continue;
     const liveSince = existing.liveSince ?? now;
-    if (now - liveSince < settleMs) {
+    const until = Math.max(liveSince + settleMs, existing.startedAt + stragglerMs);
+    if (now < until) {
       next[key] = { startedAt: existing.startedAt, liveSince };
     }
   }
@@ -71,11 +75,13 @@ export function providerIsQuiet(
   provider: string,
   now: number,
   settleMs: number,
+  stragglerMs = PROVIDER_STRAGGLER_MS,
 ): boolean {
   const state = quiet[provider];
   if (!state) return false;
   if (state.liveSince == null) return true;
-  return now - state.liveSince < settleMs;
+  if (now - state.liveSince < settleMs) return true;
+  return now - state.startedAt < stragglerMs;
 }
 
 /** Bounce noise stays silent. A phone we already paged as down still gets its recovery. */

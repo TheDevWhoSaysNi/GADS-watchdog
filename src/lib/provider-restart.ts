@@ -14,7 +14,8 @@ export function isRestartableCause(cause: DropCause): boolean {
   return (
     cause === "ios_needs_attention" ||
     cause === "provider_setup" ||
-    cause === "stale_heartbeat"
+    cause === "stale_heartbeat" ||
+    cause === "ios_disconnected"
   );
 }
 
@@ -132,10 +133,17 @@ export function shouldHoldDownAlert(input: {
     return false;
   }
   const downSince = input.downSince ?? input.now;
-  if (!input.state?.deliveredAt) {
+  // A kickstart already in cooldown is still bringing this provider back.
+  // Do not page (or treat a yesterday restart as "already tried") until it expires.
+  if (input.state && input.now < input.state.cooldownUntil) {
+    return true;
+  }
+  const deliveredAt = input.state?.deliveredAt ?? null;
+  const restartForThisIncident = deliveredAt != null && deliveredAt >= downSince;
+  if (!restartForThisIncident) {
     return input.now - downSince < input.afterMs + input.settleMs + COLLECTOR_PICKUP_MS;
   }
-  return input.now - input.state.deliveredAt < input.settleMs;
+  return input.now - deliveredAt < input.settleMs;
 }
 
 export function restartKey(device: Pick<ClassifiedDevice, "provider" | "host">): string {
