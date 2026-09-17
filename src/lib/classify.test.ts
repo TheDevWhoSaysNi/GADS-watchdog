@@ -247,7 +247,7 @@ describe("classifyCause", () => {
           sysName: "1-2",
           vendorId: "05ac",
           productId: "12a8",
-          serial: "OTHERPHONE",
+          serial: "00008110-001A4D2E0A88801E",
         },
       ],
       ios: [],
@@ -266,6 +266,69 @@ describe("classifyCause", () => {
         now,
       ),
       "usb_disconnect",
+    );
+  });
+
+  it("treats an ioreg-visible iPhone as still plugged in even if ios list missed it", () => {
+    const snap = host({
+      adb: [],
+      usb: [
+        {
+          bus: "1",
+          sysName: "iPhone",
+          vendorId: "05ac",
+          productId: "12a8",
+          product: "iPhone",
+          serial: "00008101-001664A821FA001E",
+        },
+      ],
+      ios: [],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "ios_needs_attention",
+    );
+  });
+
+  it("does not treat a non-Apple hub serial as iPhone USB inventory", () => {
+    const snap = host({
+      adb: [],
+      usb: [
+        {
+          bus: "1",
+          sysName: "hub",
+          vendorId: "2109",
+          productId: "2817",
+          serial: "HUBSERIAL123",
+        },
+      ],
+      ios: [],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "init",
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "ios_disconnected",
     );
   });
 });

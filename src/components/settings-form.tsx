@@ -373,8 +373,9 @@ export function SettingsForm() {
           <CardTitle>Host collector</CardTitle>
           <CardDescription>
             Run <code>scripts/host-collector.sh</code> on the machine that has the
-            USB phones. It posts ADB, sysfs USB serials, optional idevice_id, and
-            recent dmesg USB errors so drops can be classified as cable vs software.
+            USB phones. It posts ADB, USB serials (Linux sysfs or macOS ioreg),
+            go-ios <code>ios list</code>, and Linux dmesg USB errors so drops can
+            be classified as cable vs software.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

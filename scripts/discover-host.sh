@@ -21,6 +21,7 @@ command -v python3 >/dev/null 2>&1 && echo "python3=$(python3 --version 2>&1)" |
 command -v adb >/dev/null 2>&1 && echo "adb=$(command -v adb)" || echo "adb=missing"
 command -v ios >/dev/null 2>&1 && echo "go-ios=$(command -v ios)" || echo "go-ios=missing"
 command -v idevice_id >/dev/null 2>&1 && echo "idevice_id=$(command -v idevice_id)" || echo "idevice_id=missing"
+command -v ioreg >/dev/null 2>&1 && echo "ioreg=$(command -v ioreg)" || echo "ioreg=missing"
 
 echo "--- processes (name/args only) ---"
 ps -ax -o args= 2>/dev/null | grep -Ei 'gads|watchdog' | grep -v grep | sed 's/password[^ ]*/password=***/Ig' | head -40 || true

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Collect ADB, USB (Linux sysfs or macOS system_profiler), optional idevice_id,
+# Collect ADB, USB (Linux sysfs or macOS ioreg/IOKit), go-ios `ios list`,
 # and recent USB kernel lines. Run on the provider USB host, not as a second UI.
 # Linux: ./scripts/install-collector-linux.sh
 # macOS: ./scripts/install-collector-macos.sh
@@ -72,20 +72,80 @@ def ios_from_goios():
     return found
 
 
-def ios_from_ioreg():
+def as_usb_hex(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.lower().startswith("0x"):
+        return text[2:].lower()
+    if text.isdigit():
+        return format(int(text), "04x")
+    return hex_id(text).lower()
+
+
+def looks_like_udid(serial):
+    compact = re.sub(r"[^0-9A-Fa-f]", "", serial or "")
+    return 16 <= len(compact) <= 40
+
+
+def usb_from_ioreg():
+    """macOS IOKit USB tree. Built-in; unlike system_profiler this stays fast on large farms."""
     if sys.platform != "darwin":
         return []
     raw = run(["ioreg", "-p", "IOUSB", "-l", "-w", "0"], timeout=8)
-    found = []
-    for match in re.finditer(r'"USB Serial Number"\s*=\s*"([^"]+)"', raw):
-        serial = match.group(1).strip()
-        if re.fullmatch(r"[0-9A-Fa-f-]{16,}", serial):
-            found.append(serial)
-    return found
+    devices = []
+    current = {}
+
+    def flush():
+        if not current:
+            return
+        serial = (current.get("serial") or "").strip() or None
+        vendor = current.get("vendorId") or ""
+        product_id = current.get("productId") or ""
+        name = current.get("name") or "usb"
+        if serial or vendor or product_id:
+            devices.append({
+                "bus": current.get("location") or "?",
+                "sysName": name,
+                "vendorId": vendor,
+                "productId": product_id,
+                "manufacturer": current.get("manufacturer"),
+                "product": current.get("product") or name,
+                "serial": serial,
+            })
+        current.clear()
+
+    for line in raw.splitlines():
+        # Intel T2 minis: AppleUSBDevice. Apple silicon: IOUSBHostDevice.
+        if re.search(r"\+-o\s+\S+", line) and re.search(r"<class (AppleUSB|IOUSB)", line):
+            flush()
+            named = re.search(r"\+-o\s+(\S+)", line)
+            current["name"] = named.group(1).split("@")[0] if named else "usb"
+            loc = re.search(r"@([0-9a-fA-F]+)", line)
+            if loc:
+                current["location"] = loc.group(1)
+            continue
+        serial = re.search(r'"USB Serial Number"\s*=\s*"([^"]+)"', line)
+        if serial:
+            current["serial"] = serial.group(1)
+        vendor = re.search(r'"idVendor"\s*=\s*(\d+)', line)
+        if vendor:
+            current["vendorId"] = as_usb_hex(vendor.group(1))
+        product_id = re.search(r'"idProduct"\s*=\s*(\d+)', line)
+        if product_id:
+            current["productId"] = as_usb_hex(product_id.group(1))
+        product = re.search(r'"USB Product Name"\s*=\s*"([^"]+)"', line)
+        if product:
+            current["product"] = product.group(1)
+        manufacturer = re.search(r'"USB Vendor Name"\s*=\s*"([^"]+)"', line)
+        if manufacturer:
+            current["manufacturer"] = manufacturer.group(1)
+    flush()
+    return devices
 
 
-# go-ios is the reliable listing on large Mac farms. libimobiledevice can hang.
-# Lockdown-failed phones can vanish from `ios list` while still on USB; ioreg still sees them.
+# go-ios is pairing/Lockdown. ioreg is the cable. Lockdown can hide a seated phone
+# from `ios list` while IOKit still has the USB serial.
 ios = ios_from_goios()
 if not ios:
     ios = [
@@ -93,7 +153,6 @@ if not ios:
         for line in run(["idevice_id", "-l"], timeout=8).splitlines()
         if line.strip() and not line.startswith("{")
     ]
-ios = list(dict.fromkeys([*ios, *ios_from_ioreg()]))
 
 usb = []
 root = "/sys/bus/usb/devices"
@@ -121,35 +180,21 @@ if os.path.isdir(root):
             "product": read("product"),
             "serial": read("serial") or None,
         })
-elif sys.platform == "darwin" and not ios:
-    # system_profiler is very slow on large iPhone farms; skip when go-ios already listed them.
-    try:
-        raw = run(["system_profiler", "SPUSBDataType", "-json"], timeout=25)
-        tree = json.loads(raw or "{}")
-    except json.JSONDecodeError:
-        tree = {}
+elif sys.platform == "darwin":
+    usb = usb_from_ioreg()
 
-    def walk_usb(node, bus="?"):
-        if not isinstance(node, dict):
-            return
-        serial = node.get("serial_num") or node.get("serial_number")
-        vendor = str(node.get("vendor_id") or "")
-        product = str(node.get("product_id") or "")
-        if serial or (vendor and product):
-            usb.append({
-                "bus": str(node.get("location_id") or bus),
-                "sysName": str(node.get("_name") or "usb"),
-                "vendorId": hex_id(vendor),
-                "productId": hex_id(product),
-                "manufacturer": node.get("manufacturer"),
-                "product": node.get("_name"),
-                "serial": serial or None,
-            })
-        for child in node.get("_items") or []:
-            walk_usb(child, str(node.get("location_id") or bus))
-
-    for top in tree.get("SPUSBDataType") or []:
-        walk_usb(top)
+ios = list(
+    dict.fromkeys(
+        [
+            *ios,
+            *[
+                item["serial"]
+                for item in usb
+                if item.get("serial") and looks_like_udid(item["serial"])
+            ],
+        ]
+    )
+)
 
 dmesg = []
 if sys.platform != "darwin":

@@ -21,7 +21,7 @@ export const CAUSE_COPY: Record<
   usb_disconnect: {
     label: "USB unplugged",
     detail:
-      "The phone is gone from both ADB and the USB tree. Most often a loose cable, a port that dropped power, or someone physically unplugged it.",
+      "The host USB tree no longer sees this phone. Reseat the cable first (flaky data lines are common). If it keeps dropping, replace the cable or move the port. Watchdog will not restart the provider for this.",
   },
   adb_offline: {
     label: "ADB offline — likely cable or hub",
@@ -129,6 +129,27 @@ export function matchIos(snapshot: HostSnapshot | null, udid: string): boolean {
   return Boolean(snapshot?.ios?.some((id) => sameUdid(id, udid)));
 }
 
+/** Apple iPhone/iPad USB rows (IOKit / sysfs), not a random hub serial. */
+export function looksLikeIosUsb(item: UsbDevice): boolean {
+  const serial = (item.serial ?? "").trim();
+  const compact = serial.replace(/-/g, "");
+  if (compact.length >= 16 && compact.length <= 40 && /^[0-9a-f]+$/i.test(compact)) {
+    return true;
+  }
+  const vid = (item.vendorId ?? "").toLowerCase().replace(/^0x/, "");
+  const pid = (item.productId ?? "").toLowerCase().replace(/^0x/, "");
+  const product = (item.product ?? "").toLowerCase();
+  if (vid !== "05ac") return false;
+  if (product.includes("iphone") || product.includes("ipad") || product.includes("ipod")) {
+    return true;
+  }
+  return pid.startsWith("12");
+}
+
+export function collectorHasIosUsbInventory(snapshot: HostSnapshot): boolean {
+  return snapshot.usb.some(looksLikeIosUsb);
+}
+
 export function classifyCause(
   device: GadsDevice,
   snapshot: HostSnapshot | null,
@@ -155,11 +176,10 @@ export function classifyCause(
   if (snapshot) {
     if (os === "ios") {
       if (!device.connected && usbPresent === false && !iosListed) {
-        // Mac collectors often skip system_profiler (usb serials empty) and list
-        // phones via go-ios/ioreg. Missing from that list is not a proven unplug —
-        // Lockdown wedges hide serials while the cable is still seated.
-        const usbSerials = snapshot.usb.some((item) => Boolean(item.serial?.trim()));
-        return usbSerials ? "usb_disconnect" : "ios_disconnected";
+        // Proven unplug: this host still sees other iPhones on USB, and this UDID
+        // is gone from both IOKit and go-ios. Empty USB inventory means we cannot
+        // tell unplug from a collector that skipped ioreg.
+        return collectorHasIosUsbInventory(snapshot) ? "usb_disconnect" : "ios_disconnected";
       }
     } else {
       if (usbPresent === false && adbStatus === "absent" && !device.connected) {

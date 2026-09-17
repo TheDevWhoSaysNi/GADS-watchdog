@@ -197,7 +197,7 @@ ALLOW_PROVIDER_RESTART=1 \
 
 `ALLOW_PROVIDER_RESTART=1` is optional. Only set it if this host runs the official GADS provider service (`com.gads.provider` on macOS, or `gads-provider.service` on Linux) and you want Watchdog to kickstart that service once when a phone stays connected-but-down for 3 minutes. The collector user needs passwordless sudo for that one restart command. Leave it blank to only report status.
 
-Needs `python3`. `idevice_id` (libimobiledevice) is how iPhones are listed. `adb` is used if you also have Androids. USB serials come from `system_profiler` on macOS and `/sys/bus/usb` on Linux.
+Needs **Python 3**. On iPhone Macs also put **[go-ios](https://github.com/danielpaulus/go-ios)** on `PATH` (`ios list`) — GADS usually already has it. USB presence on macOS comes from built-in **`ioreg`** (IOKit), not `system_profiler` (too slow on large farms). `idevice_id` is only a fallback and can hang. Android hosts need **`adb`**. See the companion-software table in the [README](../README.md).
 
 **Windows providers** are uncommon. There is no USB sysfs collector for Windows yet. You can still run Watchdog on Windows and get “phone is down” from the hub.
 

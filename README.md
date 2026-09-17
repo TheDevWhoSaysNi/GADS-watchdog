@@ -20,7 +20,7 @@ Keep GADS as the appliance. Put ops here: this sidecar, host/OS hardening, and u
 ## What it does
 
 - Polls GADS `POST /authenticate` and `GET /available-devices` (the same SSE the hub UI uses).
-- Merges host snapshots from one or more collectors: `adb`, USB serials (Linux sysfs or macOS `system_profiler`), optional `idevice_id`.
+- Merges host snapshots from one or more collectors: `adb`, USB serials (Linux sysfs or macOS `ioreg`), and `ios list` (go-ios).
 - Without a collector, a down phone is just **phone down**. With a collector it can say USB unplugged, ADB offline, unauthorized, charge-only cable, or setup/WDA.
 - Pages after a grace period (minimum 15s, default 60s). Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent.
 - If several phones drop at once (provider restart), you get one farm alert instead of a stack.
@@ -70,6 +70,20 @@ phones --USB--> provider host(s) --network--> GADS hub
 ```
 
 One Watchdog. A collector on every USB box. Do not install the web app on each Mac Mini.
+
+## Companion software on USB hosts
+
+The collector is a shell script plus Python 3. It does **not** need `npm` or the Watchdog UI. Install these on each machine the cables plug into:
+
+| Tool | Who needs it | Notes |
+|---|---|---|
+| **Python 3** | Every USB host | Collector runtime. macOS: Xcode CLT or [python.org](https://www.python.org/). Linux: distro `python3`. |
+| **[go-ios](https://github.com/danielpaulus/go-ios)** (`ios` on `PATH`) | Mac Mini / iPhone providers | Same CLI GADS uses. `ios list` is pairing/Lockdown. Prefer this over `idevice_id`. |
+| **macOS `ioreg`** | Mac iPhone providers | Built in (IOKit). This is how Watchdog tells “still on the cable” vs yanked/bad cable. Do not use `system_profiler` on large farms — it hangs. |
+| **`adb`** | Android USB hosts | [platform-tools](https://developer.android.com/tools/releases/platform-tools). |
+| **libimobiledevice** (`idevice_id`) | Optional fallback | Skip on large iPhone farms; it can hang. Only used if `ios list` is missing. |
+
+GADS Mac providers often already have `ios`. Check with `ios list` and `python3 --version`. Then install the collector (`scripts/install-collector-macos.sh` / `install-collector-linux.sh`).
 
 ## License
 

@@ -43,8 +43,9 @@ export default function PlaybookPage() {
           <CardContent className="space-y-3 text-sm leading-relaxed text-zinc-300">
             <ul className="list-disc space-y-2 pl-5">
               <li>
-                <strong className="text-zinc-100">USB unplugged.</strong> Gone from
-                USB and ADB / iOS listing.
+                <strong className="text-zinc-100">USB unplugged.</strong> The Mac/Linux
+                USB tree no longer sees this phone. Reseat or replace the cable.
+                Watchdog does not restart the provider for this.
               </li>
               <li>
                 <strong className="text-zinc-100">ADB offline.</strong> Still on USB,

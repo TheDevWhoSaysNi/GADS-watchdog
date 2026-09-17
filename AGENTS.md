@@ -96,7 +96,7 @@ Skip if they only want “phone is down” from the hub. Collectors are required
 2. `WATCH_URL` is the Watchdog base URL from the USB host (`http://127.0.0.1:48080` if local, else `http://<hub-lan>:48080`). Port 48080 must be reachable on the LAN.
 3. Clone **this repo** (or copy `scripts/host-collector.sh` + install-collector-*) on the USB host. `npm install` is not required for collectors.
 4. Linux: `WATCH_URL=… COLLECTOR_TOKEN=… ./scripts/install-collector-linux.sh`
-5. macOS: same with `install-collector-macos.sh`. launchd PATH must include `/usr/local/bin:/opt/homebrew/bin` (the install script sets this). Prefer `ios list` (go-ios); `idevice_id` can hang on large farms — current `host-collector.sh` tries go-ios first.
+5. macOS: same with `install-collector-macos.sh`. launchd PATH must include `/usr/local/bin:/opt/homebrew/bin` (the install script sets this). Prefer `ios list` (go-ios); `idevice_id` can hang on large farms. USB plugged-in vs yanked uses macOS `ioreg` (built in). See README companion software.
 6. Optional provider auto-restart: only if they have a real GADS service (`com.gads.provider` launchd or `gads-provider.service`) **and** they opt in. Hub: `WATCHDOG_PROVIDER_RESTART=true`. Collector: `ALLOW_PROVIDER_RESTART=1`. The collector needs passwordless `sudo launchctl kickstart -k system/com.gads.provider` (or systemd restart). Leave both off by default.
 7. **Pilot one host.** Confirm `/api/farm` `collectorHostname` includes it and an unplug becomes **USB unplugged**. Then the rest.
 
@@ -119,7 +119,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 | All “Stuck in provider setup” with no collector | Old classifier. Current code is “Phone down” until a collector exists. |
 | Live GADS phones look setup-stuck | Watchdog user missing those workspaces’ SSE. Current code overlays admin devices with per-workspace SSE. Rebuild if the box is old. |
 | No overnight pages | Old build only polled when the UI was open. Current `instrumentation.ts` starts a background poller. |
-| Collector never posts on a Mac | `system_profiler` / `idevice_id` hang. Update `host-collector.sh`; check `data/collector.log`. |
+| Collector never posts on a Mac | `system_profiler` / `idevice_id` hang. Use current `host-collector.sh` (`ios list` + `ioreg`). Check `data/collector.log`. |
 | PowerShell SSH broke Linux paths | `$HOME` expanded locally. Retry with single quotes. |
 
 ## Layout
@@ -141,7 +141,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 | `scripts/install-macos.sh` | launchd Watchdog |
 | `scripts/install-collector-linux.sh` | systemd collector |
 | `scripts/install-collector-macos.sh` | launchd collector |
-| `scripts/host-collector.sh` | Linux sysfs, macOS USB, `adb`, `ios list` / `idevice_id` |
+| `scripts/host-collector.sh` | Linux sysfs, macOS `ioreg`, `adb`, `ios list` / `idevice_id` |
 
 Collectors POST `/api/host/snapshot` with `Authorization: Bearer <token>`.
 
