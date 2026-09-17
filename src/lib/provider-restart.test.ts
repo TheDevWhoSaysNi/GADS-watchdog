@@ -167,6 +167,46 @@ describe("provider restart timing", () => {
       false,
     );
   });
+
+  it("does not loop kickstarts for the same stuck phones after cooldown", () => {
+    const delivered = markRestartDelivered(
+      markRestartRequested({}, "suncoast-macmini-04", now, cooldownMs),
+      "suncoast-macmini-04",
+      now + 5_000,
+    )["suncoast-macmini-04"];
+    assert.equal(
+      shouldRequestRestart({
+        enabled: true,
+        canRestart: true,
+        quiet: false,
+        devices: [phone({ downSince: now - afterMs })],
+        state: delivered,
+        afterMs,
+        now: now + cooldownMs + 1,
+      }),
+      false,
+    );
+  });
+
+  it("will kickstart again if a different phone goes down after the last restart", () => {
+    const delivered = markRestartDelivered(
+      markRestartRequested({}, "suncoast-macmini-04", now, cooldownMs),
+      "suncoast-macmini-04",
+      now + 5_000,
+    )["suncoast-macmini-04"];
+    assert.equal(
+      shouldRequestRestart({
+        enabled: true,
+        canRestart: true,
+        quiet: false,
+        devices: [phone({ downSince: now + cooldownMs + 60_000 })],
+        state: delivered,
+        afterMs,
+        now: now + cooldownMs + 60_000 + afterMs,
+      }),
+      true,
+    );
+  });
 });
 
 describe("provider restart alerts", () => {
@@ -211,7 +251,7 @@ describe("provider restart alerts", () => {
         state: delivered,
         settleMs,
         afterMs,
-        now: now + settleMs + 1,
+        now: now + 120_000,
       }),
       true,
     );
@@ -224,7 +264,7 @@ describe("provider restart alerts", () => {
         state: delivered,
         settleMs,
         afterMs,
-        now: now + cooldownMs + 1,
+        now: now + afterMs + 1,
       }),
       false,
     );
@@ -261,6 +301,27 @@ describe("provider restart alerts", () => {
         now,
       }),
       true,
+    );
+  });
+
+  it("does not keep holding a phone because a later restart targeted someone else", () => {
+    const later = markRestartDelivered(
+      markRestartRequested({}, "p", now + cooldownMs + 30_000, cooldownMs),
+      "p",
+      now + cooldownMs + 35_000,
+    ).p;
+    assert.equal(
+      shouldHoldDownAlert({
+        enabled: true,
+        canRestart: true,
+        cause: "ios_needs_attention",
+        downSince: now - afterMs,
+        state: later,
+        settleMs,
+        afterMs,
+        now: now + cooldownMs + 40_000,
+      }),
+      false,
     );
   });
 

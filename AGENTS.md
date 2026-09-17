@@ -105,7 +105,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 ## Phase 4 — tune
 
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer. Quiet also lasts five minutes from bounce start so a straggler does not page.
-- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then page only if the phone is still down after the **15-minute** cooldown. Never restart for USB unplug.
+- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then wait that same ~3 minutes for phones to come back. Page if still down. The **15-minute** cooldown only blocks another kickstart. Never restart for USB unplug.
 - Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.

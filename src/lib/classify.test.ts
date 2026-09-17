@@ -142,6 +142,18 @@ describe("classifyCause", () => {
     );
   });
 
+  it("does not treat available as live while the provider is still in setup", () => {
+    assert.equal(
+      classifyCause(
+        device({ connected: true, available: true, providerState: "init" }),
+        host(),
+        true,
+        now,
+      ),
+      "provider_setup",
+    );
+  });
+
   it("does not call a collector-visible iPhone unplugged when GADS has no runtime", () => {
     const snap = host({
       adb: [],

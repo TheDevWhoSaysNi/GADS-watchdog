@@ -227,7 +227,7 @@ export function SettingsForm() {
           </div>
           <Row
             label="Auto-restart provider"
-            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One attempt; pages only if the phone is still down after the 15-minute cooldown."
+            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One kickstart after the wait above, then a few minutes for phones to come back. Still down after that → Telegram. The 15-minute cooldown only blocks a second restart."
           >
             <Switch
               checked={Boolean(form.providerRestartEnabled)}

@@ -74,6 +74,9 @@ export function hasHubRuntime(device: GadsDevice): boolean {
 }
 
 export function isGadsLive(device: GadsDevice, now = Date.now()): boolean {
+  const state = device.providerState.trim().toLowerCase();
+  // GADS 6 can leave available=true while the provider is still in init/WDA setup.
+  if (state && state !== "unknown" && state !== "live") return false;
   // GADS UI "Available" is computed on the hub (live + fresh heartbeat).
   if (device.available) return true;
   if (!hasHubRuntime(device)) return false;

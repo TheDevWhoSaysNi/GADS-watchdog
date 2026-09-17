@@ -9,6 +9,10 @@ export type ProviderRestartState = {
 export type ProviderRestartMap = Record<string, ProviderRestartState>;
 
 const COLLECTOR_PICKUP_MS = 45_000;
+/** After a kickstart, wait this long (same 3-minute knob as the pre-restart wait) for phones to return. */
+export function restartRecoverMs(afterMs: number, settleMs: number): number {
+  return Math.max(afterMs, settleMs + COLLECTOR_PICKUP_MS);
+}
 
 export function isRestartableCause(cause: DropCause): boolean {
   return (
@@ -69,7 +73,15 @@ export function shouldRequestRestart(input: {
 }): boolean {
   if (!input.enabled || !input.canRestart || input.quiet) return false;
   if (input.state && input.now < input.state.cooldownUntil) return false;
-  return stuckRestartable(input.devices, input.now, input.afterMs).length > 0;
+  const stuck = stuckRestartable(input.devices, input.now, input.afterMs);
+  if (!stuck.length) return false;
+  const deliveredAt = input.state?.deliveredAt ?? null;
+  if (deliveredAt != null) {
+    const newestDown = Math.max(...stuck.map((device) => device.downSince ?? 0));
+    // Same phones we already kickstarted. Page them instead of looping all night.
+    if (newestDown <= deliveredAt) return false;
+  }
+  return true;
 }
 
 export function markRestartRequested(
@@ -133,17 +145,20 @@ export function shouldHoldDownAlert(input: {
     return false;
   }
   const downSince = input.downSince ?? input.now;
-  // A kickstart already in cooldown is still bringing this provider back.
-  // Do not page (or treat a yesterday restart as "already tried") until it expires.
-  if (input.state && input.now < input.state.cooldownUntil) {
-    return true;
-  }
+  const requestedAt = input.state?.requestedAt;
   const deliveredAt = input.state?.deliveredAt ?? null;
-  const restartForThisIncident = deliveredAt != null && deliveredAt >= downSince;
-  if (!restartForThisIncident) {
-    return input.now - downSince < input.afterMs + input.settleMs + COLLECTOR_PICKUP_MS;
+  const firstAttemptBy = downSince + input.afterMs + input.settleMs + COLLECTOR_PICKUP_MS;
+  if (
+    requestedAt != null &&
+    requestedAt >= downSince &&
+    requestedAt <= firstAttemptBy + 60_000
+  ) {
+    const restartAt = deliveredAt != null && deliveredAt >= downSince ? deliveredAt : requestedAt;
+    const pickup = deliveredAt != null && deliveredAt >= downSince ? 0 : COLLECTOR_PICKUP_MS;
+    return input.now < restartAt + pickup + restartRecoverMs(input.afterMs, input.settleMs);
   }
-  return input.now - deliveredAt < input.settleMs;
+
+  return input.now < firstAttemptBy;
 }
 
 export function restartKey(device: Pick<ClassifiedDevice, "provider" | "host">): string {

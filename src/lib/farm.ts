@@ -123,10 +123,15 @@ async function refreshFarm(
 
   const memory = loadMemory();
   const events = loadEvents();
+  const freshHosts = loadHostSnapshots().filter(
+    (item) => now - item.receivedAt < 120_000,
+  );
   const classified = devices.map((device) =>
     classifyDevice(
       device,
-      host,
+      settings.mode === "demo"
+        ? host
+        : (findCollectorForProvider(freshHosts, restartKey(device)) ?? null),
       hubOk,
       memoryExtras(memory[device.udid], now),
       now,
@@ -137,9 +142,6 @@ async function refreshFarm(
   const quiet = updateProviderQuiet(loadProviderQuiet(), classified, now, settleMs);
   saveProviderQuiet(quiet);
 
-  const freshHosts = loadHostSnapshots().filter(
-    (item) => now - item.receivedAt < 120_000,
-  );
   const restartAfterMs = (settings.providerRestartAfterSeconds || 180) * 1000;
   const restartCooldownMs = (settings.providerRestartCooldownSeconds || 900) * 1000;
   let restarts = loadProviderRestart();

@@ -78,9 +78,9 @@ export default function PlaybookPage() {
               when a phone stays connected but not live for three minutes. Short
               flaps and hourly provider bounces stay silent, including one slow
               phone that comes back a few minutes after the rest. If that restart
-              brings it back, there is no page. If it is still down after the
-              15-minute cooldown, you get the alert. USB unplugs never trigger a
-              restart.
+              brings it back, there is no page. If it is still down a few minutes
+              after that kickstart, you get the alert. The 15-minute cooldown only
+              blocks a second restart. USB unplugs never trigger a restart.
             </p>
             <p>
               A daily health check goes out at 4:00 on the Watchdog host clock:
