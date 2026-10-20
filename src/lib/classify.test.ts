@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyCause } from "./classify.ts";
+import { classifyCause, holdPreviousDown } from "./classify.ts";
 import type { GadsDevice, HostSnapshot } from "./types.ts";
 
 const now = 1_700_000_000_000;
@@ -128,6 +128,15 @@ describe("classifyCause", () => {
 
   it("flags hub outage above per-device causes", () => {
     assert.equal(classifyCause(device(), host(), false, now), "hub_unreachable");
+  });
+
+  it("does not treat a missed provider read as a recovery", () => {
+    assert.equal(holdPreviousDown(false, "online", "unknown_down"), true);
+    assert.equal(holdPreviousDown(false, "online", "usb_disconnect"), true);
+    assert.equal(holdPreviousDown(false, "online", "online"), false);
+    assert.equal(holdPreviousDown(false, "online", undefined), false);
+    assert.equal(holdPreviousDown(false, "usb_disconnect", "unknown_down"), false);
+    assert.equal(holdPreviousDown(true, "online", "unknown_down"), false);
   });
 
   it("does not mark a phone down when hub runtime was not read", () => {

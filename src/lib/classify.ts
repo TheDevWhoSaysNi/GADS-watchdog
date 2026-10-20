@@ -205,6 +205,19 @@ export function classifyCause(
   return "unknown_down";
 }
 
+/**
+ * A failed provider read is not proof the phone came back.
+ * classifyWithoutHubRuntime may say "online" so a blip does not open a new down page.
+ * Callers must keep the previous down cause instead of sending a recovery.
+ */
+export function holdPreviousDown(
+  runtimeKnown: boolean | undefined,
+  cause: DropCause,
+  previous: DropCause | undefined,
+): boolean {
+  return runtimeKnown === false && cause === "online" && previous != null && previous !== "online";
+}
+
 /** Collector proof only. Missing hub runtime must not page a phone that may still be live. */
 function classifyWithoutHubRuntime(
   device: GadsDevice,

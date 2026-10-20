@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { dispatchAlert, hasAnyAlertChannel } from "./alerts";
-import { classifyDevice, isCableSuspect, severityForCause } from "./classify";
+import { CAUSE_COPY, classifyDevice, holdPreviousDown, isCableSuspect, severityForCause } from "./classify";
 import { buildDemoWorld } from "./demo";
 import { formatDuration } from "./format";
 import { GadsClient } from "./gads";
@@ -191,6 +191,12 @@ async function refreshFarm(
   const newEvents: FarmEvent[] = [];
   for (const device of classified) {
     const prev = memory[device.udid];
+    if (prev && holdPreviousDown(device.runtimeKnown, device.cause, prev.lastCause)) {
+      const copy = CAUSE_COPY[prev.lastCause];
+      device.cause = prev.lastCause;
+      device.causeLabel = copy.label;
+      device.causeDetail = copy.detail;
+    }
     const nextMem = applyTransition(prev, device, now);
     memory[device.udid] = nextMem;
     device.downSince = nextMem.downSince;

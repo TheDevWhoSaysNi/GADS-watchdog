@@ -216,7 +216,7 @@ export class GadsClient {
     const encoded = encodeURIComponent(nickname);
     for (const path of [`/provider/${encoded}/devices`, `/provider/${encoded}/info`]) {
       try {
-        const body = await this.getJson<unknown>(path, undefined, 5_000);
+        const body = await this.getJson<unknown>(path, undefined, 12_000);
         const list = extractProviderSync(body);
         if (list) return list;
       } catch {
