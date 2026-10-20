@@ -75,13 +75,11 @@ export default function PlaybookPage() {
               </li>
             </ul>
             <p>
-              If you opt in, Watchdog can kickstart the GADS provider service once
-              when a phone stays connected but not live for three minutes. Short
-              flaps and hourly provider bounces stay silent, including one slow
-              phone that comes back a few minutes after the rest. If that restart
-              brings it back, there is no page. If it is still down a few minutes
-              after that kickstart, you get the alert. The 15-minute cooldown only
-              blocks a second restart. USB unplugs never trigger a restart.
+              Watchdog does not restart providers. GADS v6 reconnects offline ADB
+              devices and backs off setup. A provider restart drops every session
+              on that host. Leave auto-restart off. host-main is never restarted
+              automatically. If a phone stays down past the grace period, you get
+              the page. USB unplugs are included in that page, not a restart.
             </p>
             <p>
               A daily health check goes out at 4:00 on the Watchdog host clock:

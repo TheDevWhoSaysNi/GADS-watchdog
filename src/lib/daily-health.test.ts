@@ -15,7 +15,7 @@ const fourAm = Date.parse("2026-09-05T04:00:00");
 function phone(partial: Partial<ClassifiedDevice> = {}): ClassifiedDevice {
   return {
     udid: "a",
-    name: "Asim 1",
+    name: "Phone 1",
     os: "ios",
     osVersion: "17",
     provider: "mini-02",
@@ -77,7 +77,7 @@ describe("daily health contents", () => {
     const hosts: HostSnapshot[] = [
       {
         receivedAt: noon,
-        hostname: "suncoast-macmini-02",
+        hostname: "usb-host-02",
         adb: [],
         usb: [],
         dmesg: [],
@@ -101,7 +101,7 @@ describe("daily health contents", () => {
       hubOk: true,
       hubError: null,
       hubVitals: {
-        hostname: "byteme-server",
+        hostname: "hub-server",
         cpuPercent: 8,
         memPercent: 30,
         diskPercent: 10,
@@ -111,16 +111,16 @@ describe("daily health contents", () => {
       hosts,
       devices: [
         phone({ cause: "online", name: "Live", downSince: null }),
-        phone({ name: "Asim 1" }),
+        phone({ name: "Phone 1" }),
       ],
     });
     assert.equal(event.udid, "DAILY");
     assert.match(event.title, /1\/2 online/);
     assert.match(event.detail, /1 of 2 phones are online/);
-    assert.match(event.detail, /Hub byteme-server: reachable/);
+    assert.match(event.detail, /Hub hub-server: reachable/);
     assert.match(event.detail, /CPU 8%/);
-    assert.match(event.detail, /mini-02 · suncoast-macmini-02: 1\/2 online · CPU 11%/);
-    assert.match(event.detail, /Asim 1/);
+    assert.match(event.detail, /mini-02 · usb-host-02: 1\/2 online · CPU 11%/);
+    assert.match(event.detail, /Phone 1/);
     assert.match(event.detail, /Needs a hands-on fix/);
   });
 
@@ -138,7 +138,7 @@ describe("daily health contents", () => {
         uptimeSeconds: 60,
       },
       hosts: [],
-      devices: [phone({ name: "Asim 1" })],
+      devices: [phone({ name: "Phone 1" })],
     });
     assert.match(event.detail, /mini-02 \(no collector\)/);
     assert.match(event.detail, /no vitals/);

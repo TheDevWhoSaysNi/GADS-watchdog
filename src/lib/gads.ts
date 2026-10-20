@@ -1,4 +1,16 @@
 import { normalizeUdid } from "./classify";
+import {
+  applyProviderSync,
+  assertWatchOnly,
+  extractProviderSync,
+  filterWorkspace,
+  normalizeHubDevice,
+  parseAdminDevices,
+  providerNames,
+  type ParsedAdmin,
+  type RawHubDevice,
+  type RawProviderSync,
+} from "./gads-devices";
 import type { GadsDevice } from "./types";
 
 type GadsEnvelope<T> = {
@@ -11,35 +23,6 @@ type AuthResult = {
   access_token: string;
   token_type?: string;
   expires_in?: number;
-};
-
-type RawHubDevice = {
-  info?: {
-    udid?: string;
-    name?: string;
-    os?: string;
-    os_version?: string;
-    provider?: string;
-    usage?: string;
-    workspace_id?: string;
-  };
-  udid?: string;
-  UDID?: string;
-  name?: string;
-  os?: string;
-  host?: string;
-  Host?: string;
-  connected?: boolean;
-  Connected?: boolean;
-  available?: boolean;
-  Available?: boolean;
-  provider_state?: string;
-  providerState?: string;
-  ProviderState?: string;
-  last_updated_timestamp?: number;
-  lastUpdatedTimestamp?: number;
-  in_use?: boolean;
-  in_use_by?: string;
 };
 
 type Workspace = {
@@ -91,6 +74,7 @@ export class GadsClient {
     if (!this.authEnabled) return;
     if (this.token && Date.now() < this.tokenExpiresAt - 30_000) return;
 
+    assertWatchOnly("POST", "/authenticate");
     const res = await fetch(this.url("/authenticate"), {
       method: "POST",
       headers: this.headers({ "Content-Type": "application/json" }),
@@ -114,12 +98,17 @@ export class GadsClient {
     this.tokenExpiresAt = Date.now() + expiresIn * 1000;
   }
 
-  private async getJson<T>(path: string, query?: Record<string, string>): Promise<T> {
+  private async getJson<T>(
+    path: string,
+    query?: Record<string, string>,
+    timeoutMs = 12_000,
+  ): Promise<T> {
+    assertWatchOnly("GET", path);
     await this.login();
     const res = await fetch(this.url(path, query), {
       headers: this.headers(),
       cache: "no-store",
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (res.status === 401 && this.authEnabled) {
       this.token = null;
@@ -127,7 +116,7 @@ export class GadsClient {
       const retry = await fetch(this.url(path, query), {
         headers: this.headers(),
         cache: "no-store",
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (!retry.ok) throw new Error(`GADS ${path} failed (${retry.status})`);
       return (await retry.json()) as T;
@@ -138,6 +127,7 @@ export class GadsClient {
 
   async health(): Promise<boolean> {
     try {
+      assertWatchOnly("GET", "/health");
       await this.login();
       const res = await fetch(this.url("/health"), {
         headers: this.headers(),
@@ -173,51 +163,72 @@ export class GadsClient {
   }
 
   async listDevices(workspaceId: string): Promise<GadsDevice[]> {
+    const admin = await this.tryAdminDevices();
+    if (admin) {
+      const filtered = filterWorkspace(admin.devices, workspaceId);
+      // GADS v6 answers with one inventory document. Do not open per-workspace SSE.
+      if (admin.hasLiveRuntime) return filtered;
+      const names = providerNames(workspaceId.trim() ? [] : admin.providers, filtered);
+      if (!names.length) return filtered;
+      const reads = await mapPool(names, 4, async (provider) => ({
+        provider,
+        sync: await this.readProviderSync(provider),
+      }));
+      return applyProviderSync(filtered, reads, Date.now());
+    }
+    return this.listDevicesFromAvailableStream(workspaceId);
+  }
+
+  /** Pre-v6 hubs that do not answer GET /admin/devices. */
+  private async listDevicesFromAvailableStream(workspaceId: string): Promise<GadsDevice[]> {
     if (workspaceId) {
       const devices = await this.readAvailableDevices(workspaceId);
       if (devices.length) return devices;
-      return this.readAdminDevices(workspaceId);
+      return [];
     }
 
-    const admin = await this.readAdminDevices("");
-    const workspaceIds = [
-      ...new Set(
-        [
-          ...(await this.listWorkspaceIds()),
-          ...admin.map((device) => device.workspaceId),
-        ].filter(Boolean),
-      ),
-    ];
+    const workspaceIds = await this.listWorkspaceIds();
     const live = (
       await mapPool(workspaceIds, 4, (id) => this.readAvailableDevices(id))
     ).flat();
-    if (!admin.length && !live.length) return [];
-
     const byUdid = new Map<string, GadsDevice>();
-    for (const device of admin) {
-      if (device.udid) byUdid.set(normalizeUdid(device.udid), device);
-    }
     for (const device of live) {
       if (!device.udid) continue;
-      const key = normalizeUdid(device.udid);
-      const base = byUdid.get(key);
-      byUdid.set(
-        key,
-        base
-          ? {
-              ...base,
-              ...device,
-              name: base.name || device.name,
-              provider: device.provider || base.provider,
-            }
-          : device,
-      );
+      byUdid.set(normalizeUdid(device.udid), device);
     }
     return [...byUdid.values()];
   }
 
+  private async tryAdminDevices(): Promise<ParsedAdmin | null> {
+    try {
+      const body = await this.getJson<unknown>("/admin/devices");
+      return parseAdminDevices(body);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Provider sync is the v6 runtime payload (connected, provider_state).
+   * It is not a device-control call. /device/:udid routes are refused above.
+   */
+  private async readProviderSync(nickname: string): Promise<RawProviderSync[] | null> {
+    const encoded = encodeURIComponent(nickname);
+    for (const path of [`/provider/${encoded}/devices`, `/provider/${encoded}/info`]) {
+      try {
+        const body = await this.getJson<unknown>(path, undefined, 5_000);
+        const list = extractProviderSync(body);
+        if (list) return list;
+      } catch {
+        // try the other read-only provider route
+      }
+    }
+    return null;
+  }
+
   private async readAvailableDevices(workspaceId: string): Promise<GadsDevice[]> {
     if (!workspaceId) return [];
+    assertWatchOnly("GET", "/available-devices");
     await this.login();
     const controller = new AbortController();
     const giveUp = setTimeout(() => controller.abort(), 8_000);
@@ -239,27 +250,6 @@ export class GadsClient {
     }
   }
 
-  private async readAdminDevices(workspaceId = ""): Promise<GadsDevice[]> {
-    try {
-      const body = await this.getJson<
-        GadsEnvelope<{ devices?: Array<RawHubDevice & { udid?: string; name?: string; os?: string; workspace_id?: string }> }>
-      >("/admin/devices");
-      const devices = (body.result?.devices ?? []).filter((device) => {
-        if (!workspaceId) return true;
-        return String(device.workspace_id ?? device.info?.workspace_id ?? "") === workspaceId;
-      });
-      return devices.map((d) =>
-        normalizeHubDevice({
-          info: d,
-          connected: false,
-          available: false,
-          provider_state: "unknown",
-        }),
-      );
-    } catch {
-      return [];
-    }
-  }
 }
 
 async function readFirstSseData(res: Response): Promise<string | null> {
@@ -402,25 +392,4 @@ function parseSseDevices(raw: string): RawHubDevice[] {
     if (Array.isArray(result)) return result as RawHubDevice[];
   }
   return [];
-}
-
-function normalizeHubDevice(raw: RawHubDevice): GadsDevice {
-  const info = raw.info ?? {};
-  const udid = info.udid ?? raw.udid ?? raw.UDID ?? "";
-  return {
-    udid,
-    name: info.name ?? raw.name ?? udid ?? "Unknown device",
-    os: info.os ?? raw.os ?? "android",
-    osVersion: info.os_version ?? "",
-    provider: info.provider ?? "",
-    workspaceId: info.workspace_id ?? "",
-    usage: info.usage ?? "",
-    host: raw.host ?? raw.Host ?? "",
-    connected: Boolean(raw.connected ?? raw.Connected),
-    available: Boolean(raw.available ?? raw.Available),
-    providerState: raw.provider_state ?? raw.providerState ?? raw.ProviderState ?? "",
-    lastUpdatedTimestamp: raw.last_updated_timestamp ?? raw.lastUpdatedTimestamp ?? 0,
-    inUse: Boolean(raw.in_use),
-    inUseBy: raw.in_use_by ?? "",
-  };
 }

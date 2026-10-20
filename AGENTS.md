@@ -97,7 +97,7 @@ Skip if they only want “phone is down” from the hub. Collectors are required
 3. Clone **this repo** (or copy `scripts/host-collector.sh` + install-collector-*) on the USB host. `npm install` is not required for collectors.
 4. Linux: `WATCH_URL=… COLLECTOR_TOKEN=… ./scripts/install-collector-linux.sh`
 5. macOS: same with `install-collector-macos.sh`. launchd PATH must include `/usr/local/bin:/opt/homebrew/bin` (the install script sets this). Prefer `ios list` (go-ios); `idevice_id` can hang on large farms. USB plugged-in vs yanked uses macOS `ioreg` (built in). See README companion software.
-6. Optional provider auto-restart: only if they have a real GADS service (`com.gads.provider` launchd or `gads-provider.service`) **and** they opt in. Hub: `WATCHDOG_PROVIDER_RESTART=true`. Collector: `ALLOW_PROVIDER_RESTART=1`. The collector needs passwordless `sudo launchctl kickstart -k system/com.gads.provider` (or systemd restart). Leave both off by default.
+6. Leave provider restart off. `WATCHDOG_PROVIDER_RESTART=false` on the hub, and do not set `ALLOW_PROVIDER_RESTART` on the collector. GADS v6 reconnects offline ADB and backs off setup. Restarting a provider drops every session on that host. The collector runs `scripts/restart-gads-provider.sh` only when Watchdog returns a guarded `providerRestart.approved` action. That action refuses while any phone on the provider is in use, never targets `host-main` automatically, and pages instead when in-use status is unknown.
 7. **Pilot one host.** Confirm `/api/farm` `collectorHostname` includes it and an unplug becomes **USB unplugged**. Then the rest.
 
 Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
@@ -105,7 +105,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 ## Phase 4 — tune
 
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer. Quiet also lasts five minutes from bounce start so a straggler does not page.
-- Auto-restart waits **180s** by default so 1–2 minute flaps self-heal. One kickstart per provider, then wait that same ~3 minutes for phones to come back. Page if still down. The **15-minute** cooldown only blocks another kickstart. Never restart for USB unplug.
+- Leave `WATCHDOG_PROVIDER_RESTART` **false**. GADS v6 reconnects offline ADB and backs off setup. A provider restart drops every session on that host. `host-main` is never restarted automatically. If the flag is turned on anyway, Watchdog still refuses while any phone on that provider is in use, and it pages instead of restarting when it cannot tell.
 - Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.
@@ -114,10 +114,10 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 
 | Symptom | Likely cause |
 |---|---|
-| `/api/farm` hangs | Old build stalling on GADS SSE. Pull, `npm run build`, restart. Current `gads.ts` times out and parses `data:[…]` without `\n\n`, and polls every workspace id on the admin roster. |
+| `/api/farm` hangs or the hub load spikes while Watchdog runs | Old build opening an 8-second SSE `GET /available-devices` per workspace. Current `gads.ts` uses one `GET /admin/devices`. When that JSON has no live fields, it reads each provider's `/devices` sync. It does not open the SSE stream when `/admin/devices` answers, and it does not call `/device/:udid/*`. |
 | All “Hub unreachable” but devices exist | `/health` 401. Current `health()` logs in first. |
 | All “Stuck in provider setup” with no collector | Old classifier. Current code is “Phone down” until a collector exists. |
-| Live GADS phones look setup-stuck | Watchdog user missing those workspaces’ SSE. Current code overlays admin devices with per-workspace SSE. Rebuild if the box is old. |
+| Live phones look down after a provider read fails | That provider's runtime was not applied. Those phones are not marked down from the hub. Check provider reachability from the hub. |
 | No overnight pages | Old build only polled when the UI was open. Current `instrumentation.ts` starts a background poller. |
 | Collector never posts on a Mac | `system_profiler` / `idevice_id` hang. Use current `host-collector.sh` (`ios list` + `ioreg`). Check `data/collector.log`. |
 | PowerShell SSH broke Linux paths | `$HOME` expanded locally. Retry with single quotes. |
@@ -126,7 +126,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 
 | Path | What |
 |---|---|
-| `src/lib/gads.ts` | Hub login + SSE `available-devices` |
+| `src/lib/gads.ts` | Hub login, `GET /admin/devices`, provider runtime sync. SSE only if admin devices does not answer |
 | `src/lib/classify.ts` | Drop causes |
 | `src/lib/farm.ts` | Poll loop, grace, provider quiet window, burst collapse, daily digest |
 | `src/lib/daily-health.ts` | 4am health check copy and schedule |

@@ -74,10 +74,10 @@ describe("alert channels", () => {
         event({
           severity: "warning",
           cause: "ios_needs_attention",
-          name: "Igor 3",
+          name: "Phone 3",
         }),
       ).title,
-      "Needs hands-on: Igor 3",
+      "Needs hands-on: Phone 3",
     );
     assert.equal(
       alertCopy(

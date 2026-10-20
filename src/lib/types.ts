@@ -117,6 +117,16 @@ export type GadsDevice = {
   lastUpdatedTimestamp: number;
   inUse: boolean;
   inUseBy: string;
+  /**
+   * False when this poll could not read hub or provider runtime.
+   * Omitted means the connected / provider_state fields are usable.
+   */
+  runtimeKnown?: boolean;
+  /**
+   * True only when the hub payload included an in-use flag.
+   * Omitted or false means Watchdog cannot tell, so it must not restart.
+   */
+  inUseKnown?: boolean;
 };
 
 export type ClassifiedDevice = GadsDevice & {

@@ -130,6 +130,70 @@ describe("classifyCause", () => {
     assert.equal(classifyCause(device(), host(), false, now), "hub_unreachable");
   });
 
+  it("does not mark a phone down when hub runtime was not read", () => {
+    const snap = host({
+      adb: [],
+      usb: [
+        {
+          bus: "1",
+          sysName: "1-2",
+          vendorId: "05ac",
+          productId: "12a8",
+          serial: "00008110-001A4D2E0A88801E",
+        },
+      ],
+      ios: ["00008110-001A4D2E0A88801E"],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008110-001A4D2E0A88801E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "",
+          runtimeKnown: false,
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "online",
+    );
+  });
+
+  it("still reports a proved unplug when hub runtime was not read", () => {
+    const snap = host({
+      adb: [],
+      usb: [
+        {
+          bus: "1",
+          sysName: "1-2",
+          vendorId: "05ac",
+          productId: "12a8",
+          serial: "00008110-001A4D2E0A88801E",
+        },
+      ],
+      ios: [],
+    });
+    assert.equal(
+      classifyCause(
+        device({
+          udid: "00008101-001664A821FA001E",
+          os: "ios",
+          connected: false,
+          available: false,
+          providerState: "",
+          runtimeKnown: false,
+        }),
+        snap,
+        true,
+        now,
+      ),
+      "usb_disconnect",
+    );
+  });
+
   it("treats GADS available as online even without a connected flag", () => {
     assert.equal(
       classifyCause(

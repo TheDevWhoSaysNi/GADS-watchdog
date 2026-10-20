@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { ClassifiedDevice, HostSnapshot } from "./types.ts";
 import {
   collectorCanRestart,
+  guardedRestartForCollector,
   hostMatchesProvider,
   markRestartDelivered,
   markRestartRequested,
@@ -22,7 +23,7 @@ function phone(partial: Partial<ClassifiedDevice> = {}): ClassifiedDevice {
     name: "phone",
     os: "ios",
     osVersion: "17",
-    provider: "suncoast-macmini-03",
+    provider: "usb-host-03",
     workspaceId: "",
     usage: "enabled",
     host: "",
@@ -49,7 +50,7 @@ function phone(partial: Partial<ClassifiedDevice> = {}): ClassifiedDevice {
 function host(partial: Partial<HostSnapshot> = {}): HostSnapshot {
   return {
     receivedAt: now,
-    hostname: "suncoast-macmini-03.local",
+    hostname: "usb-host-03.local",
     adb: [],
     usb: [],
     ios: [],
@@ -58,7 +59,7 @@ function host(partial: Partial<HostSnapshot> = {}): HostSnapshot {
       allowed: true,
       kind: "launchd",
       unit: "com.gads.provider",
-      nickname: "suncoast-macmini-03",
+      nickname: "usb-host-03",
     },
     ...partial,
   };
@@ -66,8 +67,8 @@ function host(partial: Partial<HostSnapshot> = {}): HostSnapshot {
 
 describe("provider restart matching", () => {
   it("matches nickname to hostname without the .local suffix", () => {
-    assert.equal(hostMatchesProvider("suncoast-macmini-03.local", "suncoast-macmini-03"), true);
-    assert.equal(hostMatchesProvider("other-mini", "suncoast-macmini-03"), false);
+    assert.equal(hostMatchesProvider("usb-host-03.local", "usb-host-03"), true);
+    assert.equal(hostMatchesProvider("other-mini", "usb-host-03"), false);
   });
 
   it("requires an explicit allow on a discovered unit", () => {
@@ -87,6 +88,8 @@ describe("provider restart timing", () => {
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone({ downSince: now - 120_000 })],
         state: undefined,
         afterMs,
@@ -102,6 +105,8 @@ describe("provider restart timing", () => {
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone()],
         state: undefined,
         afterMs,
@@ -117,6 +122,8 @@ describe("provider restart timing", () => {
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone({ cause: "usb_disconnect", connected: false })],
         state: undefined,
         afterMs,
@@ -129,6 +136,8 @@ describe("provider restart timing", () => {
         enabled: false,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone()],
         state: undefined,
         afterMs,
@@ -139,14 +148,16 @@ describe("provider restart timing", () => {
   });
 
   it("skips a second attempt during cooldown or an hourly bounce quiet window", () => {
-    const state = markRestartRequested({}, "suncoast-macmini-03", now, cooldownMs)[
-      "suncoast-macmini-03"
+    const state = markRestartRequested({}, "usb-host-03", now, cooldownMs)[
+      "usb-host-03"
     ];
     assert.equal(
       shouldRequestRestart({
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone()],
         state,
         afterMs,
@@ -159,6 +170,8 @@ describe("provider restart timing", () => {
         enabled: true,
         canRestart: true,
         quiet: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone()],
         state: undefined,
         afterMs,
@@ -170,15 +183,17 @@ describe("provider restart timing", () => {
 
   it("does not loop kickstarts for the same stuck phones after cooldown", () => {
     const delivered = markRestartDelivered(
-      markRestartRequested({}, "suncoast-macmini-04", now, cooldownMs),
-      "suncoast-macmini-04",
+      markRestartRequested({}, "usb-host-04", now, cooldownMs),
+      "usb-host-04",
       now + 5_000,
-    )["suncoast-macmini-04"];
+    )["usb-host-04"];
     assert.equal(
       shouldRequestRestart({
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone({ downSince: now - afterMs })],
         state: delivered,
         afterMs,
@@ -190,15 +205,17 @@ describe("provider restart timing", () => {
 
   it("will kickstart again if a different phone goes down after the last restart", () => {
     const delivered = markRestartDelivered(
-      markRestartRequested({}, "suncoast-macmini-04", now, cooldownMs),
-      "suncoast-macmini-04",
+      markRestartRequested({}, "usb-host-04", now, cooldownMs),
+      "usb-host-04",
       now + 5_000,
-    )["suncoast-macmini-04"];
+    )["usb-host-04"];
     assert.equal(
       shouldRequestRestart({
         enabled: true,
         canRestart: true,
         quiet: false,
+        provider: "usb-host-03",
+        inUse: "idle",
         devices: [phone({ downSince: now + cooldownMs + 60_000 })],
         state: delivered,
         afterMs,
@@ -215,6 +232,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - afterMs,
         state: undefined,
@@ -233,6 +252,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - afterMs,
         state: delivered,
@@ -246,6 +267,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - afterMs,
         state: delivered,
@@ -259,6 +282,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - afterMs,
         state: delivered,
@@ -280,6 +305,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - 90_000,
         state: stale,
@@ -293,6 +320,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_disconnected",
         downSince: now - 90_000,
         state: stale,
@@ -314,6 +343,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "ios_needs_attention",
         downSince: now - afterMs,
         state: later,
@@ -330,6 +361,8 @@ describe("provider restart alerts", () => {
       shouldHoldDownAlert({
         enabled: true,
         canRestart: true,
+        provider: "usb-host-03",
+        inUse: "idle",
         cause: "usb_disconnect",
         downSince: now - 90_000,
         state: undefined,
@@ -342,18 +375,112 @@ describe("provider restart alerts", () => {
   });
 
   it("hands a pending restart to the matching collector once", () => {
-    const requested = markRestartRequested({}, "suncoast-macmini-03", now, cooldownMs);
+    const requested = markRestartRequested({}, "usb-host-03", now, cooldownMs);
     const provider = pendingRestartForHost(
       [host()],
       requested,
-      "suncoast-macmini-03.local",
+      "usb-host-03.local",
       now + 5_000,
     );
-    assert.equal(provider, "suncoast-macmini-03");
+    assert.equal(provider, "usb-host-03");
     const delivered = markRestartDelivered(requested, provider!, now + 5_000);
     assert.equal(
-      pendingRestartForHost([host()], delivered, "suncoast-macmini-03.local", now + 6_000),
+      pendingRestartForHost([host()], delivered, "usb-host-03.local", now + 6_000),
       null,
     );
+  });
+
+  it("does not hand host-main to a collector", () => {
+    const requested = markRestartRequested({}, "host-main", now, cooldownMs);
+    assert.equal(
+      pendingRestartForHost(
+        [host({ hostname: "host-main.local", providerControl: { allowed: true, kind: "systemd", unit: "gads-provider.service", nickname: "host-main" } })],
+        requested,
+        "host-main.local",
+        now + 1_000,
+      ),
+      null,
+    );
+  });
+});
+
+describe("provider restart guards", () => {
+  it("does not restart host-main, a busy provider, or an unknown in-use state", () => {
+    const eligible = {
+      enabled: true,
+      canRestart: true,
+      quiet: false,
+      devices: [phone()],
+      state: undefined,
+      afterMs,
+      now,
+    };
+    assert.equal(
+      shouldRequestRestart({ ...eligible, provider: "host-main", inUse: "idle" }),
+      false,
+    );
+    assert.equal(
+      shouldRequestRestart({ ...eligible, provider: "usb-host-03", inUse: "busy" }),
+      false,
+    );
+    assert.equal(
+      shouldRequestRestart({ ...eligible, provider: "usb-host-03", inUse: "unknown" }),
+      false,
+    );
+  });
+
+  it("does not delay the down page when a restart is refused", () => {
+    for (const inUse of ["busy", "unknown"] as const) {
+      assert.equal(
+        shouldHoldDownAlert({
+          enabled: true,
+          canRestart: true,
+          provider: "usb-host-03",
+          inUse,
+          cause: "ios_needs_attention",
+          downSince: now - afterMs,
+          state: undefined,
+          settleMs,
+          afterMs,
+          now,
+        }),
+        false,
+      );
+    }
+    assert.equal(
+      shouldHoldDownAlert({
+        enabled: true,
+        canRestart: true,
+        provider: "host-main",
+        inUse: "idle",
+        cause: "provider_setup",
+        downSince: now - afterMs,
+        state: undefined,
+        settleMs,
+        afterMs,
+        now,
+      }),
+      false,
+    );
+  });
+
+  it("approves a collector restart only when the provider is known idle", () => {
+    assert.deepEqual(
+      guardedRestartForCollector({ pendingProvider: "usb-host-03", inUse: "idle" }),
+      { approved: true, provider: "usb-host-03", manual: false },
+    );
+    assert.equal(
+      guardedRestartForCollector({ pendingProvider: "host-main", inUse: "idle" }).approved,
+      false,
+    );
+    assert.equal(
+      guardedRestartForCollector({ pendingProvider: "usb-host-03", inUse: "unknown" }).approved,
+      false,
+    );
+    assert.equal(
+      guardedRestartForCollector({ pendingProvider: "usb-host-03", inUse: "busy" }).approved,
+      false,
+    );
+    assert.equal(guardedRestartForCollector({ pendingProvider: null, inUse: "idle" }).approved, false);
   });
 });

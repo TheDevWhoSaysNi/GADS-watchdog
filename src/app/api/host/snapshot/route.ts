@@ -6,7 +6,12 @@ import {
   saveProviderRestart,
   tokenFromAuthHeader,
 } from "@/lib/store";
-import { markRestartDelivered, pendingRestartForHost } from "@/lib/provider-restart";
+import { inUseForProvider } from "@/lib/farm";
+import {
+  guardedRestartForCollector,
+  markRestartDelivered,
+  pendingRestartForHost,
+} from "@/lib/provider-restart";
 import type { HostSnapshot, HostVitals, ProviderControl } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -57,25 +62,23 @@ export async function POST(request: Request) {
   };
   saveHostSnapshot(snapshot);
 
-  let restartProvider = false;
-  if (settings.providerRestartEnabled) {
-    const restarts = loadProviderRestart();
-    const provider = pendingRestartForHost(
-      loadHostSnapshots(),
-      restarts,
-      snapshot.hostname,
-      Date.now(),
-    );
-    if (provider) {
-      saveProviderRestart(markRestartDelivered(restarts, provider, Date.now()));
-      restartProvider = true;
-    }
+  const restarts = loadProviderRestart();
+  const pending = settings.providerRestartEnabled
+    ? pendingRestartForHost(loadHostSnapshots(), restarts, snapshot.hostname, Date.now())
+    : null;
+  const providerRestart = guardedRestartForCollector({
+    pendingProvider: pending,
+    inUse: pending ? inUseForProvider(pending) : "unknown",
+  });
+  if (providerRestart.approved && providerRestart.provider) {
+    saveProviderRestart(markRestartDelivered(restarts, providerRestart.provider, Date.now()));
   }
 
   return Response.json({
     ok: true,
     receivedAt: snapshot.receivedAt,
-    restartProvider,
+    restartProvider: false,
+    providerRestart,
   });
 }
 

@@ -75,7 +75,7 @@ Set at least:
 ```env
 GADS_MODE=live
 GADS_URL=http://127.0.0.1:8080
-GADS_USERNAME=gads-watchdog-01
+GADS_USERNAME=watchdog
 GADS_PASSWORD=your-hub-password
 GADS_AUTH_ENABLED=true
 WATCHDOG_DOWN_GRACE_SECONDS=90
@@ -166,7 +166,7 @@ Turn it off with `WATCHDOG_DAILY_HEALTH=false`, or change the hour with `WATCHDO
 
 ## Grace period and provider restarts
 
-`WATCHDOG_DOWN_GRACE_SECONDS` is how long a phone must stay not-live before Telegram/ntfy fires. Floor is **15**. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for **five minutes** from the start of the bounce so one slow phone does not page. Auto-restart waits three minutes, kickstarts once, then waits about three more minutes for phones to come back — if they do, you get nothing. The 15-minute cooldown only blocks a second kickstart. Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.
+`WATCHDOG_DOWN_GRACE_SECONDS` is how long a phone must stay not-live before Telegram/ntfy fires. Floor is **15**. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for **five minutes** from the start of the bounce so one slow phone does not page. Leave `WATCHDOG_PROVIDER_RESTART=false`. GADS v6 reconnects offline ADB devices and backs off setup on its own. Restarting a provider drops every session on that host. `host-main` is never restarted automatically. If that flag is on, Watchdog still refuses while any phone on the provider is in use, and it pages instead of restarting when it cannot tell. Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.
 
 ## Host collectors (why a phone is down)
 
@@ -191,11 +191,10 @@ If the collector is on another machine, `WATCH_URL` is the Watchdog URL on the L
 chmod +x scripts/*.sh
 WATCH_URL=http://<hub-lan-ip>:48080 \
 COLLECTOR_TOKEN='paste-token' \
-ALLOW_PROVIDER_RESTART=1 \
 ./scripts/install-collector-macos.sh
 ```
 
-`ALLOW_PROVIDER_RESTART=1` is optional. Only set it if this host runs the official GADS provider service (`com.gads.provider` on macOS, or `gads-provider.service` on Linux) and you want Watchdog to kickstart that service once when a phone stays connected-but-down for 3 minutes. The collector user needs passwordless sudo for that one restart command. Leave it blank to only report status.
+Leave `ALLOW_PROVIDER_RESTART` unset. The collector posts USB, ADB, and iOS state. It runs `scripts/restart-gads-provider.sh` only when Watchdog answers with `providerRestart.approved: true`. That approval stays off unless `WATCHDOG_PROVIDER_RESTART=true` on the hub, every phone on that provider is known idle, and the provider is not `host-main`. A bare `restartProvider: true` is ignored.
 
 Needs **Python 3**. On iPhone Macs also put **[go-ios](https://github.com/danielpaulus/go-ios)** on `PATH` (`ios list`) — GADS usually already has it. USB presence on macOS comes from built-in **`ioreg`** (IOKit), not `system_profiler` (too slow on large farms). `idevice_id` is only a fallback and can hang. Android hosts need **`adb`**. See the companion-software table in the [README](../README.md).
 
@@ -213,7 +212,7 @@ Pilot **one** provider first. Unplug a spare phone, wait for grace, confirm the 
 ## Pitfalls from real installs
 
 - Hub port is whatever GADS was started with (`--port 8080` is common on Ubuntu systemd). `.env.example` defaults to 10000.
-- GADS `/health` may return 401 without a login. Watchdog logs in first. If the farm page hangs, rebuild after pulling; older builds could stall on the hub’s SSE device stream.
+- GADS `/health` may return 401 without a login. Watchdog logs in first. Current builds poll `GET /admin/devices` once. Older builds could stall on a per-workspace SSE device stream and load the hub.
 - GADS JWTs are origin-bound. Leave `GADS_ORIGIN` blank to use `GADS_URL`. If login works but later calls 401, set the origin GADS already trusts.
 - Blank `GADS_WORKSPACE_ID` watches every workspace. Set it only if you want one workspace.
 - Do not expose port 48080 to the internet. It has no login of its own.

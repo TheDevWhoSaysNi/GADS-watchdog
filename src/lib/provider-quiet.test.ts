@@ -122,7 +122,7 @@ describe("provider quiet window", () => {
   });
 
   it("keys quiet windows by provider name", () => {
-    assert.equal(providerKey({ provider: "suncoast-macmini-04" }), "suncoast-macmini-04");
+    assert.equal(providerKey({ provider: "usb-host-04" }), "usb-host-04");
   });
 
   it("still allows a recovery for a phone that was already paged down", () => {

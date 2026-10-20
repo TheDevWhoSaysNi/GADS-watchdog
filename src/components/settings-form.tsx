@@ -218,7 +218,7 @@ export function SettingsForm() {
             />
             <Field
               label="Auto-restart wait (seconds)"
-              hint="How long a connected-but-down phone must stay down before one provider restart. Default 180. If the restart brings it back, there is no Telegram page."
+              hint="Unused while auto-restart is off. GADS v6 reconnects offline ADB and backs off setup."
               type="number"
               value={String(form.providerRestartAfterSeconds ?? 180)}
               onChange={(value) => patch("providerRestartAfterSeconds", Number(value))}
@@ -227,7 +227,7 @@ export function SettingsForm() {
           </div>
           <Row
             label="Auto-restart provider"
-            hint="Opt-in. Collector must also set ALLOW_PROVIDER_RESTART=1 and have the official GADS launchd/systemd unit. One kickstart after the wait above, then a few minutes for phones to come back. Still down after that → Telegram. The 15-minute cooldown only blocks a second restart."
+            hint="Leave off. Restarting a provider drops every session on that host. host-main is never restarted automatically. If this is on, Watchdog still refuses while any phone on that provider is in use, and it pages instead when it cannot tell."
           >
             <Switch
               checked={Boolean(form.providerRestartEnabled)}
@@ -388,7 +388,6 @@ export function SettingsForm() {
           <pre className="overflow-x-auto rounded-lg bg-black/40 p-3 text-xs text-zinc-300">
 {`WATCH_URL=http://127.0.0.1:48080 \\
 COLLECTOR_TOKEN=${form.collectorToken || "YOUR_TOKEN"} \\
-ALLOW_PROVIDER_RESTART=1 \\
 ./scripts/install-collector-macos.sh`}
           </pre>
         </CardContent>

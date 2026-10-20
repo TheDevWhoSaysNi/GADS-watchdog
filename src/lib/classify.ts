@@ -157,6 +157,7 @@ export function classifyCause(
   now = Date.now(),
 ): DropCause {
   if (!hubOk) return "hub_unreachable";
+  if (device.runtimeKnown === false) return classifyWithoutHubRuntime(device, snapshot);
 
   const os = device.os.toLowerCase();
   const adb = matchAdb(snapshot, device.udid);
@@ -202,6 +203,31 @@ export function classifyCause(
   // Without a collector we cannot tell unplugged vs WDA vs a powered-off phone.
   // Do not claim ADB/iOS pairing can see it.
   return "unknown_down";
+}
+
+/** Collector proof only. Missing hub runtime must not page a phone that may still be live. */
+function classifyWithoutHubRuntime(
+  device: GadsDevice,
+  snapshot: HostSnapshot | null,
+): DropCause {
+  if (!snapshot) return "online";
+  const os = device.os.toLowerCase();
+  const adb = matchAdb(snapshot, device.udid);
+  const usb = matchUsb(snapshot, device.udid);
+  const iosListed = matchIos(snapshot, device.udid);
+  const usbPresent = Boolean(usb);
+  const adbStatus: AdbStatus = adb?.status ?? "absent";
+
+  if (os === "ios") {
+    if (!iosListed && !usbPresent && collectorHasIosUsbInventory(snapshot)) return "usb_disconnect";
+    return "online";
+  }
+  if (adbStatus === "offline") return "adb_offline";
+  if (adbStatus === "unauthorized") return "adb_unauthorized";
+  if (usbPresent && adbStatus === "absent") return "charge_only_cable";
+  const inventory = snapshot.adb.length > 0 || snapshot.usb.length > 0;
+  if (inventory && !usbPresent && adbStatus === "absent") return "usb_disconnect";
+  return "online";
 }
 
 export function classifyDevice(

@@ -19,7 +19,7 @@ Keep GADS as the appliance. Put ops here: this sidecar, host/OS hardening, and u
 
 ## What it does
 
-- Polls GADS `POST /authenticate` and `GET /available-devices` (the same SSE the hub UI uses).
+- Polls GADS `POST /authenticate` and `GET /admin/devices` (one JSON inventory call). When that payload has no live `connected` / `provider_state` fields, Watchdog reads each provider's device sync once. It does not open the per-workspace `GET /available-devices` stream, and it does not lock, release, home, or tap a phone.
 - Merges host snapshots from one or more collectors: `adb`, USB serials (Linux sysfs or macOS `ioreg`), and `ios list` (go-ios).
 - Without a collector, a down phone is just **phone down**. With a collector it can say USB unplugged, ADB offline, unauthorized, charge-only cable, or setup/WDA.
 - Pages after a grace period (minimum 15s, default 60s). Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent.

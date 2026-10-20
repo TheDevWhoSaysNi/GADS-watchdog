@@ -337,12 +337,22 @@ try:
             reply = json.loads(raw)
         except json.JSONDecodeError:
             reply = {}
-        if reply.get("restartProvider"):
+        action = reply.get("providerRestart") if isinstance(reply.get("providerRestart"), dict) else {}
+        approved = action.get("approved") is True
+        provider = str(action.get("provider") or "").strip()
+        manual = action.get("manual") is True
+        nickname = provider.lower()
+        if nickname.endswith(".local"):
+            nickname = nickname[:-6]
+        host_main = nickname == "host-main" or nickname.startswith("host-main.")
+        if approved and provider and (manual or not host_main):
             script = os.path.join(scripts_dir, "restart-gads-provider.sh")
             if os.path.isfile(script):
-                print(run(["bash", script], timeout=30) or "provider restart requested", flush=True)
+                print(run(["bash", script], timeout=30) or "provider restart approved", flush=True)
             else:
                 print("restart-gads-provider.sh missing", file=sys.stderr)
+        elif reply.get("restartProvider"):
+            print("ignoring restartProvider without a guarded approval", file=sys.stderr)
 except urllib.error.URLError as exc:
     print(f"collector post failed: {exc}", file=sys.stderr)
     sys.exit(1)

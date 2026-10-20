@@ -31,6 +31,7 @@ import {
   collectorCanRestart,
   findCollectorForProvider,
   markRestartRequested,
+  providerInUse,
   restartKey,
   shouldHoldDownAlert,
   shouldRequestRestart,
@@ -52,6 +53,13 @@ let lastSnapshot: FarmSnapshot | null = null;
 let lastHosts: HostSnapshot[] = [];
 let pollInFlight: Promise<FarmSnapshot> | null = null;
 let backgroundPollStarted = false;
+
+export function inUseForProvider(provider: string): "idle" | "busy" | "unknown" {
+  const devices =
+    lastSnapshot?.devices.filter((device) => restartKey(device) === provider) ?? [];
+  if (!lastSnapshot || devices.length === 0) return "unknown";
+  return providerInUse(devices);
+}
 
 export async function getFarmSnapshot(
   force = false,
@@ -114,6 +122,9 @@ async function refreshFarm(
         hubError = workspaceId
           ? "Hub is up, but no devices were returned for this workspace."
           : "Hub is up, but no devices were returned. Check GADS workspaces and the collector hosts.";
+      } else if (devices.some((device) => device.runtimeKnown === false)) {
+        hubError =
+          "Hub inventory loaded, but at least one provider did not return runtime. Those phones were not marked down from the hub.";
       }
     } catch (error) {
       hubOk = false;
@@ -145,14 +156,16 @@ async function refreshFarm(
   const restartAfterMs = (settings.providerRestartAfterSeconds || 180) * 1000;
   const restartCooldownMs = (settings.providerRestartCooldownSeconds || 900) * 1000;
   let restarts = loadProviderRestart();
+  const groups = new Map<string, ClassifiedDevice[]>();
+  for (const device of classified) {
+    const key = restartKey(device);
+    const list = groups.get(key) ?? [];
+    list.push(device);
+    groups.set(key, list);
+  }
+  const inUseByProvider = new Map<string, ReturnType<typeof providerInUse>>();
+  for (const [key, group] of groups) inUseByProvider.set(key, providerInUse(group));
   if (settings.providerRestartEnabled) {
-    const groups = new Map<string, ClassifiedDevice[]>();
-    for (const device of classified) {
-      const key = restartKey(device);
-      const list = groups.get(key) ?? [];
-      list.push(device);
-      groups.set(key, list);
-    }
     for (const [key, group] of groups) {
       const hostForProvider = findCollectorForProvider(freshHosts, key);
       if (
@@ -160,6 +173,8 @@ async function refreshFarm(
           enabled: true,
           canRestart: collectorCanRestart(hostForProvider),
           quiet: providerIsQuiet(quiet, key, now, settleMs),
+          provider: key,
+          inUse: inUseByProvider.get(key) ?? "unknown",
           devices: group,
           state: restarts[key],
           afterMs: restartAfterMs,
@@ -185,9 +200,12 @@ async function refreshFarm(
 
     const silenced = providerIsQuiet(quiet, providerKey(device), now, settleMs);
     const hostForProvider = findCollectorForProvider(freshHosts, restartKey(device));
+    const providerName = restartKey(device);
     const holdForRestart = shouldHoldDownAlert({
       enabled: settings.providerRestartEnabled,
       canRestart: collectorCanRestart(hostForProvider),
+      provider: providerName,
+      inUse: inUseByProvider.get(providerName) ?? "unknown",
       cause: device.cause,
       downSince: nextMem.downSince,
       state: restarts[restartKey(device)],
