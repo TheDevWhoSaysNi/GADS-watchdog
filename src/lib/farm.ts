@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { dispatchAlert, hasAnyAlertChannel } from "./alerts";
+import { downLongEnough } from "./alert-grace";
 import { CAUSE_COPY, classifyDevice, holdPreviousDown, isCableSuspect, severityForCause } from "./classify";
 import { buildDemoWorld } from "./demo";
 import { formatDuration } from "./format";
@@ -350,7 +351,7 @@ function maybeBuildEvent(
   if (!isOnline && next.downSince && !next.incidentAlerted) {
     const elapsed = now - next.downSince;
     if (holdForRestart) return null;
-    if (elapsed >= settings.downGraceSeconds * 1000) {
+    if (downLongEnough(device.cause, elapsed, settings.downGraceSeconds)) {
       next.incidentAlerted = true;
       const severity = severityForCause(device.cause);
       const title =

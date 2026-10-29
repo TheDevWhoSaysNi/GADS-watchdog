@@ -14,8 +14,8 @@ export function EventFeed({ events }: { events: FarmEvent[] }) {
       <CardContent>
         {events.length === 0 ? (
           <p className="text-sm text-zinc-400">
-            No incidents yet. Drops shorter than the grace period stay silent so a 5-second
-            USB hiccup does not wake you up.
+            No incidents yet. Setup and pairing blips under 10 minutes stay silent.
+            A cable unplug still alerts after the grace period.
           </p>
         ) : (
           <ol className="space-y-3">
