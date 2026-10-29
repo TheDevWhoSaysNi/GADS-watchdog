@@ -340,12 +340,7 @@ try:
         action = reply.get("providerRestart") if isinstance(reply.get("providerRestart"), dict) else {}
         approved = action.get("approved") is True
         provider = str(action.get("provider") or "").strip()
-        manual = action.get("manual") is True
-        nickname = provider.lower()
-        if nickname.endswith(".local"):
-            nickname = nickname[:-6]
-        host_main = nickname == "host-main" or nickname.startswith("host-main.")
-        if approved and provider and (manual or not host_main):
+        if approved and provider:
             script = os.path.join(scripts_dir, "restart-gads-provider.sh")
             if os.path.isfile(script):
                 print(run(["bash", script], timeout=30) or "provider restart approved", flush=True)

@@ -148,15 +148,15 @@ describe("classifyCause", () => {
           sysName: "1-2",
           vendorId: "05ac",
           productId: "12a8",
-          serial: "00008110-001A4D2E0A88801E",
+          serial: "00008030-00000000000000AA",
         },
       ],
-      ios: ["00008110-001A4D2E0A88801E"],
+      ios: ["00008030-00000000000000AA"],
     });
     assert.equal(
       classifyCause(
         device({
-          udid: "00008110-001A4D2E0A88801E",
+          udid: "00008030-00000000000000AA",
           os: "ios",
           connected: false,
           available: false,
@@ -180,7 +180,7 @@ describe("classifyCause", () => {
           sysName: "1-2",
           vendorId: "05ac",
           productId: "12a8",
-          serial: "00008110-001A4D2E0A88801E",
+          serial: "00008030-00000000000000AA",
         },
       ],
       ios: [],
@@ -188,7 +188,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: false,
           available: false,
@@ -231,12 +231,12 @@ describe("classifyCause", () => {
     const snap = host({
       adb: [],
       usb: [],
-      ios: ["00008110-001A4D2E0A88801E"],
+      ios: ["00008030-00000000000000AA"],
     });
     assert.equal(
       classifyCause(
         device({
-          udid: "00008110-001A4D2E0A88801E",
+          udid: "00008030-00000000000000AA",
           os: "ios",
           connected: false,
           available: false,
@@ -254,12 +254,12 @@ describe("classifyCause", () => {
     const snap = host({
       adb: [],
       usb: [],
-      ios: ["00008110-001A4D2E0A88801E"],
+      ios: ["00008030-00000000000000AA"],
     });
     assert.equal(
       classifyCause(
         device({
-          udid: "00008110001A4D2E0A88801E",
+          udid: "0000803000000000000000AA",
           os: "ios",
           connected: false,
           available: false,
@@ -278,7 +278,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: true,
           available: false,
@@ -297,7 +297,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: false,
           available: false,
@@ -320,7 +320,7 @@ describe("classifyCause", () => {
           sysName: "1-2",
           vendorId: "05ac",
           productId: "12a8",
-          serial: "00008110-001A4D2E0A88801E",
+          serial: "00008030-00000000000000AA",
         },
       ],
       ios: [],
@@ -328,7 +328,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: false,
           available: false,
@@ -352,7 +352,7 @@ describe("classifyCause", () => {
           vendorId: "05ac",
           productId: "12a8",
           product: "iPhone",
-          serial: "00008101-001664A821FA001E",
+          serial: "00008020-00000000000000BB",
         },
       ],
       ios: [],
@@ -360,7 +360,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: false,
           available: false,
@@ -391,7 +391,7 @@ describe("classifyCause", () => {
     assert.equal(
       classifyCause(
         device({
-          udid: "00008101-001664A821FA001E",
+          udid: "00008020-00000000000000BB",
           os: "ios",
           connected: false,
           available: false,

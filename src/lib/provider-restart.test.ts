@@ -390,22 +390,10 @@ describe("provider restart alerts", () => {
     );
   });
 
-  it("does not hand host-main to a collector", () => {
-    const requested = markRestartRequested({}, "host-main", now, cooldownMs);
-    assert.equal(
-      pendingRestartForHost(
-        [host({ hostname: "host-main.local", providerControl: { allowed: true, kind: "systemd", unit: "gads-provider.service", nickname: "host-main" } })],
-        requested,
-        "host-main.local",
-        now + 1_000,
-      ),
-      null,
-    );
-  });
 });
 
 describe("provider restart guards", () => {
-  it("does not restart host-main, a busy provider, or an unknown in-use state", () => {
+  it("does not restart a busy provider or an unknown in-use state", () => {
     const eligible = {
       enabled: true,
       canRestart: true,
@@ -415,10 +403,6 @@ describe("provider restart guards", () => {
       afterMs,
       now,
     };
-    assert.equal(
-      shouldRequestRestart({ ...eligible, provider: "host-main", inUse: "idle" }),
-      false,
-    );
     assert.equal(
       shouldRequestRestart({ ...eligible, provider: "usb-host-03", inUse: "busy" }),
       false,
@@ -447,31 +431,12 @@ describe("provider restart guards", () => {
         false,
       );
     }
-    assert.equal(
-      shouldHoldDownAlert({
-        enabled: true,
-        canRestart: true,
-        provider: "host-main",
-        inUse: "idle",
-        cause: "provider_setup",
-        downSince: now - afterMs,
-        state: undefined,
-        settleMs,
-        afterMs,
-        now,
-      }),
-      false,
-    );
   });
 
   it("approves a collector restart only when the provider is known idle", () => {
     assert.deepEqual(
       guardedRestartForCollector({ pendingProvider: "usb-host-03", inUse: "idle" }),
       { approved: true, provider: "usb-host-03", manual: false },
-    );
-    assert.equal(
-      guardedRestartForCollector({ pendingProvider: "host-main", inUse: "idle" }).approved,
-      false,
     );
     assert.equal(
       guardedRestartForCollector({ pendingProvider: "usb-host-03", inUse: "unknown" }).approved,

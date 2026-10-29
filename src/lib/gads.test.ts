@@ -13,7 +13,7 @@ const inventory = {
   result: {
     devices: [
       {
-        udid: "00008110-001A4D2E0A88801E",
+        udid: "00008030-00000000000000AA",
         os: "ios",
         name: "Phone A",
         os_version: "18.0",
@@ -25,12 +25,12 @@ const inventory = {
         udid: "AABBCCDD",
         os: "android",
         name: "Phone B",
-        provider: "host-main",
+        provider: "hub",
         usage: "enabled",
         workspace_id: "ws-1",
       },
     ],
-    providers: ["host-main", "usb-host-03"],
+    providers: ["hub", "usb-host-03"],
     device_stream_types: [],
   },
 };
@@ -40,7 +40,7 @@ describe("admin device inventory", () => {
     const parsed = parseAdminDevices(inventory);
     assert.ok(parsed);
     assert.equal(parsed.hasLiveRuntime, false);
-    assert.deepEqual(parsed.providers, ["host-main", "usb-host-03"]);
+    assert.deepEqual(parsed.providers, ["hub", "usb-host-03"]);
     assert.equal(parsed.devices.length, 2);
     const phone = parsed.devices[0];
     assert.equal(phone?.name, "Phone A");
@@ -94,7 +94,7 @@ describe("provider runtime overlay", () => {
           provider: "usb-host-03",
           sync: [
             {
-              udid: "00008110-001A4D2E0A88801E",
+              udid: "00008030-00000000000000AA",
               host: "10.0.0.8:10001",
               connected: true,
               provider_state: "init",
@@ -103,14 +103,14 @@ describe("provider runtime overlay", () => {
           ],
         },
         {
-          provider: "host-main",
+          provider: "hub",
           sync: null,
         },
       ],
       1_700_000_000_000,
     );
     const ios = merged.find((device) => device.provider === "usb-host-03");
-    const hub = merged.find((device) => device.provider === "host-main");
+    const hub = merged.find((device) => device.provider === "hub");
     assert.equal(ios?.connected, true);
     assert.equal(ios?.providerState, "init");
     assert.equal(ios?.available, false);
@@ -144,7 +144,7 @@ describe("provider runtime overlay", () => {
           provider: "usb-host-03",
           sync: [
             {
-              udid: "00008110-001A4D2E0A88801E",
+              udid: "00008030-00000000000000AA",
               connected: true,
               provider_state: "live",
               has_appium_session: true,
@@ -163,7 +163,7 @@ describe("provider runtime overlay", () => {
 describe("read-only hub calls", () => {
   it("refuses device control routes", () => {
     assert.doesNotThrow(() => assertWatchOnly("GET", "/admin/devices"));
-    assert.doesNotThrow(() => assertWatchOnly("GET", "/provider/host-main/devices"));
+    assert.doesNotThrow(() => assertWatchOnly("GET", "/provider/hub/devices"));
     assert.doesNotThrow(() => assertWatchOnly("POST", "/authenticate"));
     assert.throws(() => assertWatchOnly("POST", "/devices/control/ABC/release"));
     assert.throws(() => assertWatchOnly("GET", "/device/ABC/tap"));

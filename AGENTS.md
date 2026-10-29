@@ -16,7 +16,7 @@ Humans: [docs/INSTALL.md](docs/INSTALL.md). This file is the install contract fo
 - Do not fork or vendor GADS / WDA into this repo.
 - Do not set `WATCHDOG_DOWN_GRACE_SECONDS` below **15**. Hourly provider restarts are muted until that provider is live plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for five minutes from bounce start so a single slow phone does not page.
 - Do not call a drop “USB unplugged” unless a collector on **that** USB host is posting.
-- From **Windows PowerShell SSH**: do not double-quote remotes that contain `$HOME`, `` `id -u` ``, or `timeout=20`. PowerShell expands those. Use single-quoted remote scripts, or pipe a `.py` file over stdin. Never clone to a path like `C:UsersRyan` on Linux.
+- From **Windows PowerShell SSH**: do not double-quote remotes that contain `$HOME`, `` `id -u` ``, or `timeout=20`. PowerShell expands those. Use single-quoted remote scripts, or pipe a `.py` file over stdin. Never clone to a Windows path that lost its backslashes (for example `C:UsersName`) on Linux.
 
 ## Phase 0 — discover (before writing `.env`)
 
@@ -97,7 +97,7 @@ Skip if they only want “phone is down” from the hub. Collectors are required
 3. Clone **this repo** (or copy `scripts/host-collector.sh` + install-collector-*) on the USB host. `npm install` is not required for collectors.
 4. Linux: `WATCH_URL=… COLLECTOR_TOKEN=… ./scripts/install-collector-linux.sh`
 5. macOS: same with `install-collector-macos.sh`. launchd PATH must include `/usr/local/bin:/opt/homebrew/bin` (the install script sets this). Prefer `ios list` (go-ios); `idevice_id` can hang on large farms. USB plugged-in vs yanked uses macOS `ioreg` (built in). See README companion software.
-6. Leave provider restart off. `WATCHDOG_PROVIDER_RESTART=false` on the hub, and do not set `ALLOW_PROVIDER_RESTART` on the collector. GADS v6 reconnects offline ADB and backs off setup. Restarting a provider drops every session on that host. The collector runs `scripts/restart-gads-provider.sh` only when Watchdog returns a guarded `providerRestart.approved` action. That action refuses while any phone on the provider is in use, never targets `host-main` automatically, and pages instead when in-use status is unknown.
+6. Leave provider restart off. `WATCHDOG_PROVIDER_RESTART=false` on the hub, and do not set `ALLOW_PROVIDER_RESTART` on the collector. GADS v6 reconnects offline ADB and backs off setup. Restarting a provider drops every session on that host. The collector runs `scripts/restart-gads-provider.sh` only when Watchdog returns a guarded `providerRestart.approved` action. That action refuses while any phone on the provider is in use, and pages instead when in-use status is unknown.
 7. **Pilot one host.** Confirm `/api/farm` `collectorHostname` includes it and an unplug becomes **USB unplugged**. Then the rest.
 
 Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
@@ -105,7 +105,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 ## Phase 4 — tune
 
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer. Quiet also lasts five minutes from bounce start so a straggler does not page.
-- Leave `WATCHDOG_PROVIDER_RESTART` **false**. GADS v6 reconnects offline ADB and backs off setup. A provider restart drops every session on that host. `host-main` is never restarted automatically. If the flag is turned on anyway, Watchdog still refuses while any phone on that provider is in use, and it pages instead of restarting when it cannot tell.
+- Leave `WATCHDOG_PROVIDER_RESTART` **false**. GADS v6 reconnects offline ADB and backs off setup. A provider restart drops every session on that host. If the flag is turned on anyway, Watchdog still refuses while any phone on that provider is in use, and it pages instead of restarting when it cannot tell.
 - Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
 - Recovery pages fire only for phones that already crossed grace, including during a restart quiet window. Setup, pairing, ADB offline, stale heartbeat, and "phone down" without an unplug wait at least 10 minutes (`SELF_HEAL_GRACE_SECONDS`) even when `WATCHDOG_DOWN_GRACE_SECONDS` is shorter. Cable unplug, unauthorized, and charge-only still use the configured grace.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.

@@ -227,7 +227,7 @@ export function SettingsForm() {
           </div>
           <Row
             label="Auto-restart provider"
-            hint="Leave off. Restarting a provider drops every session on that host. host-main is never restarted automatically. If this is on, Watchdog still refuses while any phone on that provider is in use, and it pages instead when it cannot tell."
+            hint="Leave off. Restarting a provider drops every session on that host. If this is on, Watchdog still refuses while any phone on that provider is in use, and it pages instead when it cannot tell."
           >
             <Switch
               checked={Boolean(form.providerRestartEnabled)}

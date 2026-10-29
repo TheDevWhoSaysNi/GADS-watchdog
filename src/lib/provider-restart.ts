@@ -35,12 +35,6 @@ export function normalizeHost(value: string): string {
   return value.trim().toLowerCase().replace(/\.local$/, "");
 }
 
-/** Automatic kickstart never targets the hub host. A manual approval must say so itself. */
-export function isHostMain(provider: string): boolean {
-  const name = normalizeHost(provider);
-  return name === "host-main" || name.startsWith("host-main.");
-}
-
 export function providerInUse(
   devices: Array<Pick<GadsDevice, "inUse" | "inUseKnown">>,
 ): InUseKnowledge {
@@ -51,13 +45,9 @@ export function providerInUse(
 
 /**
  * Automatic restart is allowed only when every phone on the provider is known idle.
- * host-main is never automatic. Busy or unknown means page instead.
+ * Busy or unknown means page instead.
  */
-export function blockAutomaticRestart(
-  provider: string,
-  inUse: InUseKnowledge,
-): "host-main" | "in-use" | "unknown" | null {
-  if (isHostMain(provider)) return "host-main";
+export function blockAutomaticRestart(inUse: InUseKnowledge): "in-use" | "unknown" | null {
   if (inUse === "busy") return "in-use";
   if (inUse !== "idle") return "unknown";
   return null;
@@ -68,7 +58,7 @@ export function guardedRestartForCollector(input: {
   inUse: InUseKnowledge;
 }): GuardedRestart {
   const provider = input.pendingProvider ?? "";
-  if (!provider || blockAutomaticRestart(provider, input.inUse)) {
+  if (!provider || blockAutomaticRestart(input.inUse)) {
     return { approved: false, provider, manual: false };
   }
   return { approved: true, provider, manual: false };
@@ -121,7 +111,7 @@ export function shouldRequestRestart(input: {
   now: number;
 }): boolean {
   if (!input.enabled || !input.canRestart || input.quiet) return false;
-  if (blockAutomaticRestart(input.provider, input.inUse)) return false;
+  if (blockAutomaticRestart(input.inUse)) return false;
   if (input.state && input.now < input.state.cooldownUntil) return false;
   const stuck = stuckRestartable(input.devices, input.now, input.afterMs);
   if (!stuck.length) return false;
@@ -157,7 +147,6 @@ export function pendingRestartForHost(
   now: number,
 ): string | null {
   for (const [provider, state] of Object.entries(restarts)) {
-    if (isHostMain(provider)) continue;
     if (state.deliveredAt) continue;
     if (now - state.requestedAt > COLLECTOR_PICKUP_MS * 4) continue;
     const host = findCollectorForProvider(hosts, provider);
@@ -197,7 +186,7 @@ export function shouldHoldDownAlert(input: {
   if (!input.enabled || !input.canRestart || !isRestartableCause(input.cause)) {
     return false;
   }
-  if (blockAutomaticRestart(input.provider, input.inUse)) return false;
+  if (blockAutomaticRestart(input.inUse)) return false;
   const downSince = input.downSince ?? input.now;
   const requestedAt = input.state?.requestedAt;
   const deliveredAt = input.state?.deliveredAt ?? null;

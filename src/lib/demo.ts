@@ -22,7 +22,7 @@ type ScriptedPhone = {
 
 const PHONES: ScriptedPhone[] = [
   {
-    udid: "26111FDCG0004Y",
+    udid: "DEMO-PIXEL-7-PRO",
     name: "Pixel 7 Pro",
     os: "android",
     osVersion: "15",
@@ -39,7 +39,7 @@ const PHONES: ScriptedPhone[] = [
     }),
   },
   {
-    udid: "35011FDCG0008K",
+    udid: "DEMO-PIXEL-8",
     name: "Pixel 8",
     os: "android",
     osVersion: "15",
@@ -59,7 +59,7 @@ const PHONES: ScriptedPhone[] = [
     },
   },
   {
-    udid: "R58M30ABC21",
+    udid: "DEMO-GALAXY-S21",
     name: "Galaxy S21",
     os: "android",
     osVersion: "14",
@@ -99,7 +99,7 @@ const PHONES: ScriptedPhone[] = [
     },
   },
   {
-    udid: "00008110-001A4D2E0A88801E",
+    udid: "00008030-00000000000000AA",
     name: "iPhone 13",
     os: "ios",
     osVersion: "17.5",
@@ -139,7 +139,7 @@ const PHONES: ScriptedPhone[] = [
     },
   },
   {
-    udid: "RF8T12XYZ99",
+    udid: "DEMO-GALAXY-A54",
     name: "Galaxy A54",
     os: "android",
     osVersion: "14",
@@ -165,7 +165,7 @@ const PHONES: ScriptedPhone[] = [
     osVersion: "15",
     usage: "enabled",
     inUse: true,
-    inUseBy: "ryan",
+    inUseBy: "demo",
     scenario: () => ({
       connected: true,
       available: true,
