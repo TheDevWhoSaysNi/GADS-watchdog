@@ -50,7 +50,7 @@ Open [http://127.0.0.1:48080/setup](http://127.0.0.1:48080/setup).
 3. Generate a private topic, subscribe, send a test ping.
 4. When ready, paste the real hub URL and turn demo mode off.
 
-A cable unplug waits at least **15 seconds** (default **60**) before it pages. Setup, pairing, and other drops GADS retries on its own wait **10 minutes**, so a one- or two-minute blip stays quiet.
+A cable unplug waits at least **15 seconds** (default **60**) before it pages. Setup, pairing, and other drops GADS retries on its own wait **5 minutes**, so a one- or two-minute blip stays quiet.
 
 ## Path 2 — expert / service (Linux, Windows, macOS)
 
@@ -166,7 +166,7 @@ Turn it off with `WATCHDOG_DAILY_HEALTH=false`, or change the hour with `WATCHDO
 
 ## Grace period and provider restarts
 
-`WATCHDOG_DOWN_GRACE_SECONDS` is how long a cable unplug, unauthorized phone, or charge-only cable must stay down before Telegram/ntfy fires. Floor is **15**. Setup, pairing (including Lockdown error 3), ADB offline, a stale heartbeat, and a plain "phone down" with no unplug evidence wait at least **10 minutes**. GADS usually clears those in a minute or two; a page means it is still stuck and worth a physical check. A recovery is sent only after that page. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for **five minutes** from the start of the bounce so one slow phone does not page. Leave `WATCHDOG_PROVIDER_RESTART=false`. GADS v6 reconnects offline ADB devices and backs off setup on its own. Restarting a provider drops every session on that host. If that flag is on, Watchdog still refuses while any phone on the provider is in use, and it pages instead of restarting when it cannot tell. Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.
+`WATCHDOG_DOWN_GRACE_SECONDS` is how long a cable unplug, unauthorized phone, or charge-only cable must stay down before Telegram/ntfy fires. Floor is **15**. Setup, pairing (including Lockdown error 3), ADB offline, a stale heartbeat, and a plain "phone down" with no unplug evidence wait at least **5 minutes**. GADS usually clears those in a minute or two; a page means it is still stuck and worth a physical check. A recovery is sent only after that page. Hourly provider restarts are detected separately: if several phones on the same provider go into setup/init together, Watchdog stays quiet until they are live again plus `WATCHDOG_PROVIDER_SETTLE_SECONDS` (default 60), and for **five minutes** from the start of the bounce so one slow phone does not page. Leave `WATCHDOG_PROVIDER_RESTART=false`. GADS v6 reconnects offline ADB devices and backs off setup on its own. Restarting a provider drops every session on that host. If that flag is on, Watchdog still refuses while any phone on the provider is in use, and it pages instead of restarting when it cannot tell. Recoveries are only sent for phones that already crossed grace. If three or more phones still page at once after that, Watchdog sends **one** farm message. The service polls on its own; you do not need the dashboard open.
 
 ## Host collectors (why a phone is down)
 

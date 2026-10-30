@@ -65,7 +65,7 @@ export function alertCopy(event: FarmEvent): { title: string; body: string } {
           : "Phone down";
   return {
     title: `${prefix}: ${event.name}`,
-    body: `${event.title}\n${event.detail}`,
+    body: event.detail || event.title,
   };
 }
 

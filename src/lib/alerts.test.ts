@@ -82,6 +82,18 @@ describe("alert channels", () => {
     assert.equal(
       alertCopy(
         event({
+          severity: "warning",
+          cause: "ios_needs_attention",
+          name: "Phone 3",
+          title: "Phone 3 needs a hands-on fix",
+          detail: "Setup is still failing.",
+        }),
+      ).body,
+      "Setup is still failing.",
+    );
+    assert.equal(
+      alertCopy(
+        event({
           udid: "DAILY",
           name: "77/102 online",
           title: "Daily farm check · 77/102 online",

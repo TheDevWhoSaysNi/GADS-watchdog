@@ -14,7 +14,7 @@ export function EventFeed({ events }: { events: FarmEvent[] }) {
       <CardContent>
         {events.length === 0 ? (
           <p className="text-sm text-zinc-400">
-            No incidents yet. Setup and pairing blips under 10 minutes stay silent.
+            No incidents yet. Setup and pairing blips under 5 minutes stay silent.
             A cable unplug still alerts after the grace period.
           </p>
         ) : (

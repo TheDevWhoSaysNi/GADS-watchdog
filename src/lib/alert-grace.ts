@@ -15,7 +15,7 @@ const SELF_HEAL_CAUSES: ReadonlySet<DropCause> = new Set([
 ]);
 
 /** How long a self-healing drop must last before it is worth a physical check. */
-export const SELF_HEAL_GRACE_SECONDS = 10 * 60;
+export const SELF_HEAL_GRACE_SECONDS = 5 * 60;
 
 export function alertGraceSeconds(cause: DropCause, downGraceSeconds: number): number {
   const configured = Math.max(15, downGraceSeconds || 60);

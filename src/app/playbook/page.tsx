@@ -78,7 +78,7 @@ export default function PlaybookPage() {
               Watchdog does not restart providers. GADS v6 reconnects offline ADB
               devices and backs off setup. A provider restart drops every session
               on that host. Leave auto-restart off. Pairing, setup, and other drops
-              GADS retries must stay down for 10 minutes before a page, so a one-
+              GADS retries must stay down for 5 minutes before a page, so a one-
               or two-minute self-heal stays quiet. A USB unplug, unauthorized
               phone, or charge-only cable still pages after the grace period.
               Those pages are not a restart.

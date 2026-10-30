@@ -22,7 +22,7 @@ Keep GADS as the appliance. Put ops here: this sidecar, host/OS hardening, and u
 - Polls GADS `POST /authenticate` and `GET /admin/devices` (one JSON inventory call). When that payload has no live `connected` / `provider_state` fields, Watchdog reads each provider's device sync once. It does not open the per-workspace `GET /available-devices` stream, and it does not lock, release, home, or tap a phone.
 - Merges host snapshots from one or more collectors: `adb`, USB serials (Linux sysfs or macOS `ioreg`), and `ios list` (go-ios).
 - Without a collector, a down phone is just **phone down**. With a collector it can say USB unplugged, ADB offline, unauthorized, charge-only cable, or setup/WDA.
-- Pages after a grace period (minimum 15s, default 60s for a cable unplug). Setup, pairing, and other drops GADS retries wait at least 10 minutes, so a blip that clears in a minute or two stays quiet. Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent.
+- Pages after a grace period (minimum 15s, default 60s for a cable unplug). Setup, pairing, and other drops GADS retries wait at least 5 minutes, so a blip that clears in a minute or two stays quiet. Fill any mix of [ntfy](https://ntfy.sh), Telegram, Discord, Slack, Mattermost, Teams, Pushover, Gotify, or a generic webhook — blank ones stay silent.
 - If several phones drop at once (provider restart), you get one farm alert instead of a stack.
 - A daily health check (default 4am on the Watchdog host) reports online count, hub and provider CPU / RAM / disk, and phones that dropped in the last 24 hours and are still down.
 - Demo farm is on until you point it at a live hub.

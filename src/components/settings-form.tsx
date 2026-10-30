@@ -202,7 +202,7 @@ export function SettingsForm() {
             />
             <Field
               label="Down grace (seconds)"
-              hint="Minimum 15s. Cable unplug, unauthorized, and charge-only use this. Setup, pairing, and other drops GADS retries wait at least 10 minutes."
+              hint="Minimum 15s. Cable unplug, unauthorized, and charge-only use this. Setup, pairing, and other drops GADS retries wait at least 5 minutes."
               type="number"
               value={String(form.downGraceSeconds)}
               onChange={(value) => patch("downGraceSeconds", Number(value))}

@@ -4,13 +4,13 @@ import { alertGraceSeconds, downLongEnough, SELF_HEAL_GRACE_SECONDS } from "./al
 
 describe("self-heal alert grace", () => {
   it("keeps a two-minute pairing flap silent", () => {
-    const twoMinutes = 2 * 60 * 1000 + 18_000;
+    const twoMinutes = 2 * 60 * 1000 + 2_000;
     assert.equal(downLongEnough("ios_needs_attention", twoMinutes, 60), false);
     assert.equal(downLongEnough("provider_setup", 90_000, 60), false);
     assert.equal(downLongEnough("adb_offline", 2 * 60 * 1000, 60), false);
   });
 
-  it("pages a pairing failure that is still stuck after 10 minutes", () => {
+  it("pages a pairing failure that is still stuck after 5 minutes", () => {
     assert.equal(
       downLongEnough("ios_needs_attention", SELF_HEAL_GRACE_SECONDS * 1000, 60),
       true,
@@ -29,7 +29,7 @@ describe("self-heal alert grace", () => {
     assert.equal(downLongEnough("hub_unreachable", 60_000, 60), true);
   });
 
-  it("uses at least 10 minutes for drops GADS retries, and longer if grace is higher", () => {
+  it("uses at least 5 minutes for drops GADS retries, and longer if grace is higher", () => {
     for (const cause of [
       "ios_needs_attention",
       "provider_setup",

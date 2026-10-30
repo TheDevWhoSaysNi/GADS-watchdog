@@ -107,7 +107,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 - Provider bounce on a timer: keep grace ≥ 15s (90s is a common start) and settle at 60s unless they want longer. Quiet also lasts five minutes from bounce start so a straggler does not page.
 - Leave `WATCHDOG_PROVIDER_RESTART` **false**. GADS v6 reconnects offline ADB and backs off setup. A provider restart drops every session on that host. If the flag is turned on anyway, Watchdog still refuses while any phone on that provider is in use, and it pages instead of restarting when it cannot tell.
 - Daily health check defaults to **04:00 local** on the Watchdog host. It reports online count, hub/provider CPU RAM disk, and phones that dropped in the last 24 hours and are still down. `WATCHDOG_DAILY_HEALTH=false` to skip.
-- Recovery pages fire only for phones that already crossed grace, including during a restart quiet window. Setup, pairing, ADB offline, stale heartbeat, and "phone down" without an unplug wait at least 10 minutes (`SELF_HEAL_GRACE_SECONDS`) even when `WATCHDOG_DOWN_GRACE_SECONDS` is shorter. Cable unplug, unauthorized, and charge-only still use the configured grace.
+- Recovery pages fire only for phones that already crossed grace, including during a restart quiet window. Setup, pairing, ADB offline, stale heartbeat, and "phone down" without an unplug wait at least 5 minutes (`SELF_HEAL_GRACE_SECONDS`) even when `WATCHDOG_DOWN_GRACE_SECONDS` is shorter. Cable unplug, unauthorized, and charge-only still use the configured grace.
 - `GADS_ORIGIN`: leave blank unless authenticate works and later calls 401.
 
 ## If something looks wrong
@@ -128,7 +128,7 @@ Windows USB hosts: no collector yet. Watchdog still pages “phone down.”
 |---|---|
 | `src/lib/gads.ts` | Hub login, `GET /admin/devices`, provider runtime sync. SSE only if admin devices does not answer |
 | `src/lib/classify.ts` | Drop causes |
-| `src/lib/alert-grace.ts` | 10-minute wait before paging a drop GADS retries; cable unplug uses configured grace |
+| `src/lib/alert-grace.ts` | 5-minute wait before paging a drop GADS retries; cable unplug uses configured grace |
 | `src/lib/farm.ts` | Poll loop, grace, provider quiet window, burst collapse, daily digest |
 | `src/lib/daily-health.ts` | 4am health check copy and schedule |
 | `src/lib/vitals.ts` | Hub CPU / RAM / disk for the daily digest |
