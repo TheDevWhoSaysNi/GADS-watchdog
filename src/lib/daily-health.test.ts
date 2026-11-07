@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   buildDailyHealthEvent,
   dailyHealthDue,
+  devicesForDailyHealth,
+  excludedDailyHealthWorkspaceIds,
   localDateKey,
   unrecoveredDrops,
 } from "./daily-health.ts";
@@ -41,6 +43,30 @@ function phone(partial: Partial<ClassifiedDevice> = {}): ClassifiedDevice {
     ...partial,
   };
 }
+
+describe("default workspace exclusion", () => {
+  it("drops devices in the default workspace from the daily digest", () => {
+    const exclude = excludedDailyHealthWorkspaceIds([
+      { id: "ws-default", name: "Default Workspace", is_default: true },
+      { id: "ws-main", name: "Production" },
+    ]);
+    assert.deepEqual([...exclude], ["ws-default"]);
+    const devices = [
+      phone({ udid: "a", workspaceId: "ws-default", name: "Spare" }),
+      phone({ udid: "b", workspaceId: "ws-main", name: "Farm phone" }),
+    ];
+    const kept = devicesForDailyHealth(devices, exclude);
+    assert.deepEqual(
+      kept.map((item) => item.name),
+      ["Farm phone"],
+    );
+  });
+
+  it("matches default workspace by name when is_default is absent", () => {
+    const exclude = excludedDailyHealthWorkspaceIds([{ _id: "ws-0", name: "Default Workspace" }]);
+    assert.ok(exclude.has("ws-0"));
+  });
+});
 
 describe("daily health schedule", () => {
   it("does not send before the configured hour", () => {

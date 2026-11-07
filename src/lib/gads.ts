@@ -147,19 +147,23 @@ export class GadsClient {
     return preferred.trim();
   }
 
-  private async listWorkspaceIds(): Promise<string[]> {
+  async listWorkspaces(): Promise<Workspace[]> {
     for (const path of ["/workspaces", "/admin/workspaces"]) {
       try {
         const body = await this.getJson<unknown>(path);
-        const ids = extractWorkspaces(body)
-          .map((workspace) => workspace.id ?? workspace._id ?? "")
-          .filter(Boolean);
-        if (ids.length) return ids;
+        const list = extractWorkspaces(body);
+        if (list.length) return list;
       } catch {
         // try the next known path
       }
     }
     return [];
+  }
+
+  private async listWorkspaceIds(): Promise<string[]> {
+    return (await this.listWorkspaces())
+      .map((workspace) => workspace.id ?? workspace._id ?? "")
+      .filter(Boolean);
   }
 
   async listDevices(workspaceId: string): Promise<GadsDevice[]> {

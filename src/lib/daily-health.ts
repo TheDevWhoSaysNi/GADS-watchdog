@@ -7,6 +7,35 @@ import type { ClassifiedDevice, FarmEvent, HostSnapshot, HostVitals } from "./ty
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DOWN_LINES = 25;
 
+export type WorkspaceRef = {
+  id?: string;
+  _id?: string;
+  name?: string;
+  is_default?: boolean;
+};
+
+const DEFAULT_WORKSPACE_NAME = "default workspace";
+
+/** GADS default workspace — usually spare inventory that stays offline. */
+export function excludedDailyHealthWorkspaceIds(workspaces: WorkspaceRef[]): Set<string> {
+  const ids = new Set<string>();
+  for (const workspace of workspaces) {
+    const id = (workspace.id ?? workspace._id ?? "").trim();
+    if (!id) continue;
+    const name = (workspace.name ?? "").trim().toLowerCase();
+    if (workspace.is_default || name === DEFAULT_WORKSPACE_NAME) ids.add(id);
+  }
+  return ids;
+}
+
+export function devicesForDailyHealth(
+  devices: ClassifiedDevice[],
+  excludeWorkspaceIds: Set<string>,
+): ClassifiedDevice[] {
+  if (!excludeWorkspaceIds.size) return devices;
+  return devices.filter((device) => !excludeWorkspaceIds.has(device.workspaceId));
+}
+
 export function localDateKey(now: number): string {
   const date = new Date(now);
   const y = date.getFullYear();

@@ -9,6 +9,7 @@ import type {
   Settings,
 } from "./types";
 import type { ProviderQuietMap } from "./provider-quiet";
+import type { ChargeAction } from "./charge-window";
 import type { ProviderRestartMap } from "./provider-restart";
 
 const DATA_DIR = join(process.cwd(), "data");
@@ -149,6 +150,14 @@ export function loadProviderRestart(): ProviderRestartMap {
 
 export function saveProviderRestart(restarts: ProviderRestartMap) {
   writeJson("provider-restart.json", restarts);
+}
+
+export function loadChargeActions(): Record<string, ChargeAction> {
+  return readJson("charge-window.json", {});
+}
+
+export function saveChargeActions(actions: Record<string, ChargeAction>) {
+  writeJson("charge-window.json", actions);
 }
 
 export function loadDailyHealthSentAt(): number | null {

@@ -20,7 +20,12 @@ import {
   saveProviderQuiet,
   saveProviderRestart,
 } from "./store";
-import { buildDailyHealthEvent, dailyHealthDue } from "./daily-health";
+import {
+  buildDailyHealthEvent,
+  dailyHealthDue,
+  devicesForDailyHealth,
+  excludedDailyHealthWorkspaceIds,
+} from "./daily-health";
 import { collectLocalVitalsReady } from "./vitals";
 import {
   providerIsQuiet,
@@ -445,13 +450,32 @@ async function maybeSendDailyHealth(
   if (!settings.dailyHealthEnabled || !hasAnyAlertChannel(settings)) return null;
   const lastSent = loadDailyHealthSentAt();
   if (!force && !dailyHealthDue(now, settings.dailyHealthHour ?? 4, lastSent)) return null;
+  let digestDevices = devices;
+  if (settings.mode === "live" && hubOk) {
+    try {
+      const client = new GadsClient(
+        settings.gadsUrl,
+        settings.gadsUsername,
+        settings.gadsPassword,
+        settings.gadsAuthEnabled,
+        settings.gadsOrigin,
+      );
+      const exclude = excludedDailyHealthWorkspaceIds(await client.listWorkspaces());
+      digestDevices = devicesForDailyHealth(devices, exclude);
+    } catch (error) {
+      console.warn(
+        "[watchdog] daily health could not load workspaces; counting all devices",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
   const event = buildDailyHealthEvent({
     now,
     hubOk,
     hubError,
     hubVitals: await collectLocalVitalsReady(),
     hosts,
-    devices,
+    devices: digestDevices,
   });
   event.notified = await dispatchAlert(settings, event);
   if (event.notified && !force) saveDailyHealthSentAt(now);
