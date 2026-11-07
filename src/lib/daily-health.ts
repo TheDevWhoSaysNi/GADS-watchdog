@@ -14,16 +14,16 @@ export type WorkspaceRef = {
   is_default?: boolean;
 };
 
-const DEFAULT_WORKSPACE_NAME = "default workspace";
+const DAILY_DIGEST_EXCLUDED_NAMES = new Set(["default workspace", "test workspace"]);
 
-/** GADS default workspace — usually spare inventory that stays offline. */
+/** Inventory workspaces that should not inflate the morning digest. */
 export function excludedDailyHealthWorkspaceIds(workspaces: WorkspaceRef[]): Set<string> {
   const ids = new Set<string>();
   for (const workspace of workspaces) {
     const id = (workspace.id ?? workspace._id ?? "").trim();
     if (!id) continue;
     const name = (workspace.name ?? "").trim().toLowerCase();
-    if (workspace.is_default || name === DEFAULT_WORKSPACE_NAME) ids.add(id);
+    if (workspace.is_default || DAILY_DIGEST_EXCLUDED_NAMES.has(name)) ids.add(id);
   }
   return ids;
 }

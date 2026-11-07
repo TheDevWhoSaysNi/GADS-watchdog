@@ -66,6 +66,15 @@ describe("default workspace exclusion", () => {
     const exclude = excludedDailyHealthWorkspaceIds([{ _id: "ws-0", name: "Default Workspace" }]);
     assert.ok(exclude.has("ws-0"));
   });
+
+  it("drops Test Workspace from the daily digest", () => {
+    const exclude = excludedDailyHealthWorkspaceIds([
+      { id: "ws-test", name: "Test Workspace" },
+      { id: "ws-main", name: "Production" },
+    ]);
+    assert.ok(exclude.has("ws-test"));
+    assert.equal(exclude.has("ws-main"), false);
+  });
 });
 
 describe("daily health schedule", () => {
