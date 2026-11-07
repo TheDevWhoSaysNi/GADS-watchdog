@@ -7,6 +7,7 @@ import {
   normalizeHubDevice,
   parseAdminDevices,
   providerNames,
+  workspaceListTotalPages,
   type ParsedAdmin,
   type RawHubDevice,
   type RawProviderSync,
@@ -150,9 +151,18 @@ export class GadsClient {
   async listWorkspaces(): Promise<Workspace[]> {
     for (const path of ["/workspaces", "/admin/workspaces"]) {
       try {
-        const body = await this.getJson<unknown>(path);
-        const list = extractWorkspaces(body);
-        if (list.length) return list;
+        const merged: Workspace[] = [];
+        for (let page = 1; page <= 20; page++) {
+          const body = await this.getJson<unknown>(path, {
+            page: String(page),
+            limit: "100",
+          });
+          const list = extractWorkspaces(body);
+          if (!list.length) break;
+          merged.push(...list);
+          if (page >= workspaceListTotalPages(body)) break;
+        }
+        if (merged.length) return merged;
       } catch {
         // try the next known path
       }

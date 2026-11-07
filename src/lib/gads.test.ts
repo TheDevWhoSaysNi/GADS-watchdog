@@ -5,6 +5,7 @@ import {
   assertWatchOnly,
   extractProviderSync,
   parseAdminDevices,
+  workspaceListTotalPages,
 } from "./gads-devices.ts";
 
 const inventory = {
@@ -157,6 +158,18 @@ describe("provider runtime overlay", () => {
     assert.equal(merged[0]?.inUse, true);
     assert.equal(merged[0]?.inUseKnown, true);
     assert.equal(merged[0]?.available, true);
+  });
+});
+
+describe("workspace list pagination", () => {
+  it("reads total_pages from a paginated hub envelope", () => {
+    assert.equal(
+      workspaceListTotalPages({
+        result: { items: [{ id: "a", name: "A" }], total: 29, page: 1, total_pages: 2 },
+      }),
+      2,
+    );
+    assert.equal(workspaceListTotalPages({ result: [{ id: "a", name: "A" }] }), 1);
   });
 });
 

@@ -116,6 +116,17 @@ export function normalizeHubDevice(raw: RawHubDevice): GadsDevice {
   };
 }
 
+export function workspaceListTotalPages(body: unknown): number {
+  if (!body || typeof body !== "object") return 1;
+  const root = body as Record<string, unknown>;
+  const payload = "result" in root ? root.result : body;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const pages = (payload as Record<string, unknown>).total_pages;
+    if (typeof pages === "number" && pages > 0) return pages;
+  }
+  return 1;
+}
+
 export function filterWorkspace(devices: GadsDevice[], workspaceId: string): GadsDevice[] {
   const id = workspaceId.trim();
   if (!id) return devices;
